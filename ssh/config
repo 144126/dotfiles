@@ -4,7 +4,7 @@ Host pilotspan-dev-workspace
     PubkeyAuthentication no
     IdentitiesOnly yes
     LocalForward 3690 localhost:3690
-    LocalForward 3001 localhost:3001
+    LocalForward 3000 localhost:3000
     ControlMaster auto
     ControlPath ~/.ssh/cm-%r@%h:%p
     ControlPersist 10m
