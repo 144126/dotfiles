@@ -1,19 +1,15 @@
 #!/bin/bash
-# say "text" | echo "text" | say — Deepgram Flux at fastest natural speed, fallback Fish Sarah
+# say "text" — Deepgram Flux-TTS at fastest natural speed
 if [ "$1" = "--stop" ]; then pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
 text="${*:-$(cat)}"; [ -z "$text" ] && exit 0
 wav="/tmp/pi-tts-$$.mp3"
-# 1) Deepgram Flux direct if key exists (fastest)
-if [ -n "$DEEPGRAM_API_KEY" ]; then
-  curl -s -m 30 "https://api.deepgram.com/v1/speak?model=aura-2-luna&encoding=mp3" -H "Authorization: Token $DEEPGRAM_API_KEY" -H "Content-Type: application/json" -d "{\"text\":\"$text\"}" -o "$wav" 2>/dev/null
+if [ -n "$OPENROUTER_API_KEY" ]; then
+  jq -n --arg t "$text" '{model:"deepgram/flux-tts:free",input:$t,response_format:"mp3",speed:1.35}' | curl -s -m 30 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
+  if [ -s "$wav" ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null && exit 0; fi
+  # fallback fish sarah if flux fails
+  jq -n --arg t "$text" --arg v "${OPENROUTER_TTS_VOICE:-933563129e564b19a115bedd57b7406a}" '{model:"fish-audio/s2.1-pro-free:free",input:$t,voice:$v,response_format:"mp3"}' | curl -s -m 60 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
   if [ -s "$wav" ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null && exit 0; fi
 fi
-# 2) OpenRouter Fish Sarah at fastest (1.35x via ffplay)
-if [ -n "$OPENROUTER_API_KEY" ]; then
-  jq -n --arg t "$text" --arg v "${OPENROUTER_TTS_VOICE:-933563129e564b19a115bedd57b7406a}" '{model:"fish-audio/s2.1-pro-free:free",input:$t,voice:$v,response_format:"mp3"}' | curl -s -m 60 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
-  if [ -s "$wav" ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null && exit 0; ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null && exit 0; fi
-fi
-# 3) local piper fallback at 1.35x
 cd ~/i/piper 2>/dev/null || cd /home/ed/i/piper 2>/dev/null || exit 1
 wav="/tmp/pi-tts-$$.wav"; .venv/bin/python -m piper -m en_US-lessac-medium.onnx -f "$wav" <<< "$text" 2>/dev/null
 ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null || paplay "$wav" 2>/dev/null
