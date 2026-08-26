@@ -1,14 +1,14 @@
 #!/bin/bash
-# say "text" — Deepgram Flux-TTS at fastest natural speed (flux-bree-en)
+# say "text" — Deepgram Flux-TTS, speed only via request, no post atempo
 if [ "$1" = "--stop" ]; then pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
 text="${*:-$(cat)}"; [ -z "$text" ] && exit 0
 wav="/tmp/pi-tts-$$.mp3"
 if [ -n "$OPENROUTER_API_KEY" ]; then
-  jq -n --arg t "$text" '{model:"deepgram/flux-tts:free",input:$t,voice:"flux-bree-en",response_format:"mp3"}' | curl -s -m 30 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
-  if [ -s "$wav" ] && [ $(stat -c%s "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null && exit 0; fi
+  jq -n --arg t "$text" '{model:"deepgram/flux-tts:free",input:$t,voice:"flux-bree-en",response_format:"mp3",speed:1.15}' | curl -s -m 30 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
+  if [ -s "$wav" ] && [ $(stat -c%s "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null && exit 0; fi
   jq -n --arg t "$text" --arg v "${OPENROUTER_TTS_VOICE:-933563129e564b19a115bedd57b7406a}" '{model:"fish-audio/s2.1-pro-free:free",input:$t,voice:$v,response_format:"mp3"}' | curl -s -m 60 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
-  if [ -s "$wav" ] && [ $(stat -c%s "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null && exit 0; fi
+  if [ -s "$wav" ] && [ $(stat -c%s "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null && exit 0; fi
 fi
 cd ~/i/piper 2>/dev/null || cd /home/ed/i/piper 2>/dev/null || exit 1
 wav="/tmp/pi-tts-$$.wav"; .venv/bin/python -m piper -m en_US-lessac-medium.onnx -f "$wav" <<< "$text" 2>/dev/null
-ffplay -nodisp -autoexit -loglevel quiet -af "atempo=1.35" "$wav" 2>/dev/null || paplay "$wav" 2>/dev/null
+paplay "$wav" 2>/dev/null || ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null
