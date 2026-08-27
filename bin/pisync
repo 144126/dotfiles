@@ -1,31 +1,39 @@
 #!/bin/bash
-# fast pisync — tri-research: whole-file + batched + parallel, --all for 40M skills
+# fast pisync — only enabled skills from Pi settings (15 vs 123), batched whole-file, --all for all 123
 set -e
 H=pilotspan-dev-workspace
 ALL=0
 [[ "$1" == "--all" ]] && ALL=1
-
 OPTS="-azW"
 
 if [[ $ALL -eq 1 ]]; then
-  echo "pisync --all: syncing 40M skills (slow)"
-  rsync $OPTS --delete ~/.pi/agent/skills/ "$H:.pi/agent/skills/" &
+  echo "pisync --all: syncing all 123 skills (40M, slow)"
+  rsync -aLzW --delete ~/.agents/skills/ "$H:.agents/skills/" &
   P1=$!
-  rsync $OPTS --delete ~/.agents/skills/ "$H:.agents/skills/" &
+  rsync $OPTS --delete ~/.pi/agent/skills/ "$H:.pi/agent/skills/" &
   P2=$!
   rsync $OPTS --delete ~/.pi/agent/extensions/ "$H:.pi/agent/extensions/" &
   P3=$!
   wait $P1 $P2 $P3
 else
-  rsync $OPTS ~/.pi/agent/extensions/ "$H:.pi/agent/extensions/" &
+  # fast: only skills enabled in Pi settings (via +skills/... in settings.json)
+  ENABLED=$(python3 -c "import json,os; d=json.load(open(os.path.expanduser('~/.pi/agent/settings.json'))); print(' '.join([s[8:] for s in d.get('skills',[]) if s.startswith('+')]))")
+  # build include args
+  INC=""
+  for s in $ENABLED; do INC="$INC --include=$s --include=$s/***"; done
+  # rsync filtered — single ssh session for 15 dirs
+  rsync -aLzW --delete-excluded $INC --exclude='*' ~/.agents/skills/ "$H:.agents/skills/" &
   P1=$!
-  wait $P1
+  rsync $OPTS ~/.pi/agent/skills/ "$H:.pi/agent/skills/" &
+  P2=$!
+  rsync $OPTS ~/.pi/agent/extensions/ "$H:.pi/agent/extensions/" &
+  P3=$!
+  wait $P1 $P2 $P3
 fi
 
-# batch tiny pi files to one ssh session (saves 4*1.7s)
+# batch tiny pi files to one ssh session
 rsync $OPTS ~/.pi/agent/models.json ~/.pi/agent/models-store.json ~/.pi/agent/settings.json ~/.pi/agent/keybindings.json ~/.pi/agent/AGENTS.md "$H:.pi/agent/" &
 P4=$!
-# batch home files to one ssh session
 rsync $OPTS ~/AGENTS.md ~/ed.md "$H:" &
 P5=$!
 wait $P4 $P5
@@ -33,4 +41,4 @@ wait $P4 $P5
 for f in auth.json trust.json; do
   [ -f ~/.pi/agent/$f ] && rsync --ignore-existing -az "$HOME/.pi/agent/$f" "$H:.pi/agent/" 2>&1 | tail -n1
 done
-echo "synced ($([[ $ALL -eq 1 ]] && echo all || echo fast))."
+echo "synced ($([[ $ALL -eq 1 ]] && echo all || echo fast/enabled))."
