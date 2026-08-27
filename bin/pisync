@@ -7,6 +7,7 @@ rsync -az --delete ~/.pi/agent/extensions/ "$H:.pi/agent/extensions/"
 rsync -az ~/.pi/agent/AGENTS.md "$H:.pi/agent/AGENTS.md"
 rsync -az ~/AGENTS.md "$H:AGENTS.md"
 rsync -az ~/ed.md "$H:ed.md"
+rsync -az --delete ~/.agents/skills/ "$H:.agents/skills/"
 for f in models.json models-store.json settings.json keybindings.json; do
   [ -f ~/.pi/agent/$f ] && rsync -az ~/.pi/agent/$f "$H:.pi/agent/"
 done
