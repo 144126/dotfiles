@@ -7,7 +7,7 @@ Host pilotspan-dev-workspace
     AddKeysToAgent yes
     GSSAPIAuthentication no
     Compression no
-    IPQoS lowdelay throughput
+    IPQoS af21 cs1
     TCPKeepAlive yes
     ServerAliveInterval 60
     ServerAliveCountMax 3
@@ -17,7 +17,9 @@ Host pilotspan-dev-workspace
     AddressFamily inet
     CanonicalizeHostname no
     SetEnv TERM=xterm-256color
-    LocalForward 3000 localhost:3000
-    LocalForward 3001 localhost:3001
-    # RemoteForward on-demand: ssh -O forward -R 127.0.0.1:18082:127.0.0.1:8082 pilotspan-dev-workspace
+    LocalForward 3690 localhost:3690
+    LocalForward 127.0.0.1:3000 127.0.0.1:3000
+    LocalForward 127.0.0.1:3001 127.0.0.1:3001
+    # mic + whisper channels back to this laptop (used by remote pi Ctrl+R)
     RemoteForward 127.0.0.1:18082 127.0.0.1:8082
+    RemoteForward 127.0.0.1:18083 127.0.0.1:8082
