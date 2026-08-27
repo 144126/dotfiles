@@ -1,0 +1,129 @@
+#!/bin/sh
+
+IFACE="${DC_IFACE:-}"
+if [ -z "$IFACE" ] && command -v ip >/dev/null 2>&1; then
+    IFACE=$(ip -o -4 route show default 2>/dev/null | awk '{print $5; exit}')
+fi
+[ -n "$IFACE" ] || IFACE="wlp0s20f3"
+
+RX_FILE="${DC_RX:-/sys/class/net/${IFACE}/statistics/rx_bytes}"
+TX_FILE="${DC_TX:-/sys/class/net/${IFACE}/statistics/tx_bytes}"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/datacount"
+STATEFILE="$DATA_DIR/wifi"
+LOGFILE="$DATA_DIR/sessions.log"
+
+mkdir -p "$DATA_DIR"
+
+read_counters() {
+    rx=$(cat "$RX_FILE" 2>/dev/null || echo 0)
+    tx=$(cat "$TX_FILE" 2>/dev/null || echo 0)
+    echo $((rx + tx))
+}
+
+add_commas() {
+    echo "$1" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta'
+}
+
+human() {
+    bytes=$1
+    if [ "$bytes" -ge 1073741824 ]; then
+        whole=$((bytes / 1073741824))
+        frac=$((bytes % 1073741824 / 107374182))
+        printf '%d.%d GB' "$whole" "$frac"
+    elif [ "$bytes" -ge 1048576 ]; then
+        whole=$((bytes / 1048576))
+        frac=$((bytes % 1048576 / 104858))
+        printf '%d.%d MB' "$whole" "$frac"
+    else
+        printf '%d KB' "$((bytes / 1024))"
+    fi
+}
+
+fmt_dur() {
+    s=$1
+    h=$((s / 3600))
+    m=$((s % 3600 / 60))
+    ss=$((s % 60))
+    if [ "$h" -gt 0 ]; then
+        printf '%dh %02dm %02ds' "$h" "$m" "$ss"
+    else
+        printf '%dm %02ds' "$m" "$ss"
+    fi
+}
+
+read_state() {
+    accum=0
+    prev=0
+    prev_ts=0
+    if [ -f "$STATEFILE" ]; then
+        { IFS= read -r accum; IFS= read -r prev; IFS= read -r prev_ts; } < "$STATEFILE"
+        accum=${accum:-0}
+        prev=${prev:-0}
+        prev_ts=${prev_ts:-0}
+    fi
+}
+
+write_state() {
+    echo "$1" > "$STATEFILE"
+    echo "$2" >> "$STATEFILE"
+    echo "$3" >> "$STATEFILE"
+}
+
+prepend_log() {
+    line=$1
+    if [ -f "$LOGFILE" ]; then
+        printf '%s\n' "$line" | cat - "$LOGFILE" > "$LOGFILE.tmp" && mv "$LOGFILE.tmp" "$LOGFILE"
+    else
+        printf '%s\n' "$line" > "$LOGFILE"
+    fi
+}
+
+do_reset() {
+    current=$(read_counters)
+    now=$(date +%s)
+    read_state
+
+    stamp() {
+        [ "$1" -gt 0 ] && date -d "@$1" '+%Y-%m-%d %H:%M:%S' || printf 'n/a'
+    }
+
+    if [ "$prev_ts" -gt 0 ]; then
+        dur=$(fmt_dur $((now - prev_ts)))
+    else
+        dur="n/a"
+    fi
+
+    usage=$(human "$accum")
+    reset_at=$(date '+%Y-%m-%d %H:%M:%S')
+    prev_at=$(stamp "$prev_ts")
+
+    prepend_log "${usage} | ${reset_at} | ${prev_at} | ${dur} | ${IFACE}"
+
+    write_state 0 "$current" "$now"
+    echo "0"
+}
+
+do_show() {
+    current=$(read_counters)
+    now=$(date +%s)
+    read_state
+
+    if [ ! -f "$STATEFILE" ]; then
+        write_state 0 "$current" "$now"
+        prev_ts=$now
+    fi
+
+    diff=$((current - prev))
+    if [ "$diff" -ge 0 ]; then
+        accum=$((accum + diff))
+    fi
+    prev=$current
+
+    write_state "$accum" "$prev" "$prev_ts"
+    add_commas $((accum / 1024))
+}
+
+case "${1:-show}" in
+    reset) do_reset ;;
+    show) do_show ;;
+esac

@@ -1,0 +1,7 @@
+# Custom commands shown in the combined launcher (mod+d)
+# Format: Label:command   (or just "command" for label==command)
+Terminal:urxvt
+Files:thunar
+Wifi:dmenu-wifi
+Launcher:combined-menu
+Reload Sway:swaymsg reload

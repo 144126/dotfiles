@@ -1,0 +1,74 @@
+#!/bin/bash
+# Combined launcher: desktop entries (via j4-dmenu-desktop) + custom commands.
+# Output is piped to wmenu; the selected line is executed.
+
+TERM=${TERM:-urxvt}
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/combined-menu.txt"
+CMDS="$HOME/.config/sway/commands.txt"
+mkdir -p "$(dirname "$CACHE")"
+
+# Use a delimiter that cannot legitimately appear in a desktop Name= value
+# (tab can, which previously corrupted the name<->file mapping).
+SEP=$'\x1f'
+
+# Map of desktop label -> desktop file path (built by scanning apps).
+APP_DIRS="/usr/share/applications $HOME/.local/share/applications"
+lookup_cache="${XDG_CACHE_HOME:-$HOME/.cache}/combined-menu-apps.txt"
+if [ ! -f "$lookup_cache" ] || [ "$lookup_cache" -ot "$HOME/.config/sway/config" ]; then
+    : > "$lookup_cache"
+    for d in $APP_DIRS; do
+        [ -d "$d" ] || continue
+        for f in "$d"/*.desktop; do
+            [ -f "$f" ] || continue
+            name=$(grep -m1 '^Name=' "$f" 2>/dev/null | cut -d= -f2-)
+            [ -n "$name" ] && printf '%s%s%s\n' "$name" "$SEP" "$f" >> "$lookup_cache"
+        done
+    done
+fi
+
+{
+    # desktop entries
+    while IFS="$SEP" read -r name file; do
+        [ -n "$name" ] && printf '%s%s%s%s%s\n' "$name" "$SEP" "@@DESKTOP@@" "$SEP" "$file"
+    done < "$lookup_cache"
+
+    # custom commands
+    if [ -f "$CMDS" ]; then
+        while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            case "$line" in \#*) continue ;; esac
+            label=${line%%:*}
+            cmd=${line#*:}
+            if [ "$label" = "$cmd" ]; then
+                printf '%s%s%s%s%s\n' "$line" "$SEP" "@@CMD@@" "$SEP" "$line"
+            else
+                printf '%s%s%s%s%s\n' "$label" "$SEP" "@@CMD@@" "$SEP" "$cmd"
+            fi
+        done < "$CMDS"
+    fi
+} | sort -u -t"$SEP" -k1,1 > "$CACHE"
+
+sel=$(cut -d"$SEP" -f1 "$CACHE" | wmenu -i -l 12)
+[ -n "$sel" ] || exit
+
+# Match on the full first field, then split into exactly 3 fields on the SEP.
+match=$(awk -F"$SEP" -v s="$sel" '$1==s {print; exit}' "$CACHE")
+[ -n "$match" ] || exit
+
+kind=$(printf '%s' "$match" | awk -F"$SEP" '{print $2}')
+target=$(printf '%s' "$match" | awk -F"$SEP" '{print $3}')
+
+case "$kind" in
+    @@DESKTOP@@)
+        exec=$(grep -m1 '^Exec=' "$target" 2>/dev/null | cut -d= -f2- | sed 's/ *%[fFuUdDnNickvm]//g')
+        term=$(grep -m1 '^Terminal=' "$target" 2>/dev/null | cut -d= -f2)
+        if [ "$term" = "true" ]; then
+            setsid "$TERM" -e sh -c "$exec" >/dev/null 2>&1 &
+        else
+            setsid sh -c "$exec" >/dev/null 2>&1 &
+        fi
+        ;;
+    @@CMD@@)
+        setsid sh -c "$target" >/dev/null 2>&1 &
+        ;;
+esac

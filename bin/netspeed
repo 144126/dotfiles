@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Netspeed - show current upload/download speed
+# Stores state per interface in /tmp/netspeed-<iface>
+
+IFACE="${1}"
+STATEFILE="/tmp/netspeed-${IFACE}"
+
+RX_FILE="/sys/class/net/${IFACE}/statistics/rx_bytes"
+TX_FILE="/sys/class/net/${IFACE}/statistics/tx_bytes"
+
+[ -f "$RX_FILE" ] || { echo "down:-- up:--"; exit 1; }
+
+now_rx=$(cat "$RX_FILE" 2>/dev/null || echo 0)
+now_tx=$(cat "$TX_FILE" 2>/dev/null || echo 0)
+
+prev_rx=0; prev_tx=0; prev_ts=0
+[ -f "$STATEFILE" ] && read -r prev_rx prev_tx prev_ts < "$STATEFILE"
+
+now_ts=$(date +%s%N)
+echo "$now_rx $now_tx $now_ts" > "$STATEFILE"
+
+rx_bps=0; tx_bps=0
+if [ "$prev_ts" -gt 0 ] && [ "$now_ts" -gt "$prev_ts" ]; then
+    elapsed_ms=$(( (now_ts - prev_ts) / 1000000 ))
+    [ "$elapsed_ms" -gt 0 ] && rx_bps=$(( (now_rx - prev_rx) * 1000 / elapsed_ms )) && tx_bps=$(( (now_tx - prev_tx) * 1000 / elapsed_ms ))
+fi
+
+format_speed() {
+    local bytes=$1; [ "${bytes}" -lt 0 ] 2>/dev/null && bytes=0
+    local bits=$(( bytes * 8 ))
+    if [ "$bits" -ge 1000000 ]; then
+        echo "$(( bits / 1000000 )).$(( (bits % 1000000) / 100000 ))mbps"
+    elif [ "$bits" -ge 1000 ]; then
+        echo "$(( bits / 1000 )).$(( (bits % 1000) / 100 ))kbps"
+    else
+        echo "${bits}bps"
+    fi
+}
+
+rx_str=$(format_speed "$rx_bps")
+tx_str=$(format_speed "$tx_bps")
+
+echo "down:${rx_str} up:${tx_str}"

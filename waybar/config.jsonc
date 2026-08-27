@@ -1,0 +1,78 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 24,
+    "modules-left": ["sway/workspaces"],
+    "modules-center": [],
+    "modules-right": ["tray", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "tray": {
+        "spacing": 6
+    },
+    "clock": {
+        "format": "{:%a %d %b %H:%M}",
+        "tooltip-format": "{:%a %d %b %Y}"
+    },
+    "cpu": {
+        "format": "cpu {usage}%",
+        "interval": 2
+    },
+    "memory": {
+        "format": "ram {percentage}%",
+        "interval": 5
+    },
+    "disk": {
+        "format": "dsk {percentage_used}%",
+        "path": "/",
+        "interval": 30
+    },
+    "network": {
+        "format-wifi": "w:{essid}",
+        "format-ethernet": "eth",
+        "format-disconnected": "none",
+        "tooltip-format": "{ifname} {ipaddr}/{cidr}",
+        "on-click": "iwgtk",
+        "interval": 5
+    },
+    "battery": {
+        "format": "{icon}{capacity}%",
+        "format-charging": "^{capacity}%",
+        "format-icons": ["!", "", "", "", ""],
+        "interval": 10
+    },
+    "temperature": {
+        "format": "{temperatureC}°C",
+        "interval": 5
+    },
+    "custom/display": {
+        "exec": "~/.config/waybar/display-mode.sh",
+        "exec-if": "swaymsg -t get_outputs -r | jq -e '.[] | select(.name == \"HDMI-A-1\" and .active == true)' >/dev/null 2>&1",
+        "return-type": "json",
+        "interval": 5,
+        "format": " {} ",
+        "signal": 2
+    },
+    "custom/speed": {
+        "exec": "~/.config/waybar/speed.sh",
+        "interval": 2,
+        "format": " {} "
+    },
+    "custom/battery-notify": {
+        "exec": "~/.local/bin/battery-notify.sh",
+        "interval": 60,
+        "hide-empty-text": true
+    },
+    "custom/gemini": {
+        "exec": "cat ~/.local/state/gemini-live-daemon/status.txt 2>/dev/null || true",
+        "interval": 1,
+        "format": " {} ",
+        "escape": false,
+        "hide-empty-text": true
+    },
+    "custom/data": {
+        "exec": "~/.local/bin/datacount 2>/dev/null || echo 0",
+        "interval": 5,
+        "format": " d:{}KB ",
+        "on-click": "~/.local/bin/datacount reset 2>/dev/null; pkill -RTMIN+1 waybar 2>/dev/null",
+        "signal": 1
+    }
+}
