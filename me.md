@@ -33,6 +33,11 @@ Personal naming and scaffolding prefs, not work policy.
 
 - Dotfiles mirrors and personal clone prefs are personal; work VM uses its own layout.
 
+### Dotfiles (local only)
+
+- Repo: `144126/dotfiles` — public at https://github.com/144126/dotfiles — cloned at `~/i/144126/dotfiles`. Mirrors `~/.tmux.conf` → `tmux/tmux.conf`, `~/.config/foot/foot.ini` → `foot/foot.ini`.
+- Any agent that edits a system config (`~/.tmux.conf`, `~/.config/foot/foot.ini`, `~/.bashrc`, etc.) must copy it to the repo, `git add .`, commit, `git push` in same turn.
+
 ### Browser (local)
 
 - Never let agent-browser write its profile into `/tmp` (tmpfs). Use `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.

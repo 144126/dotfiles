@@ -118,14 +118,9 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 - After every edit turn: `git add .`, commit, `git push`. Message follows Commit messages. A failed push is fine, the commit is what matters.
 - `.env` is always gitignored. Never commit it.
 
-# Browser — local only (see ~/me.md if needed)
+# Browser — local only (see ~/me.md)
 
 # Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
-
-# Dotfiles
-
-- Repo: `144126/dotfiles` — public at https://github.com/144126/dotfiles — cloned at `~/i/144126/dotfiles` (`/tmp/dotfiles` working copy). Mirrors `~/.tmux.conf` → `tmux/tmux.conf`, `~/.config/foot/foot.ini` → `foot/foot.ini`.
-- Any agent that edits a system config (`~/.tmux.conf`, `~/.config/foot/foot.ini`, `~/.bashrc`, etc.) must copy it to the repo, `git add .`, commit, `git push` in same turn.
 
 # New webapp project (SvelteKit) — work defaults only
 
