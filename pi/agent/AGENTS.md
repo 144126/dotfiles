@@ -11,3 +11,7 @@ For longer replies, start with a short WhatsApp-style TLDR for TTS, then a separ
 # Session auto-rename
 
 After the first user message, as the last step before finishing your first response, rename the session to a short suitable name (3-6 words) based on that first message and your answer. Use `PI_SESSION_FILE` env var — edit the `.jsonl` and update the `{"type":"session_info","name":"..."}` line via python json. Keep it short, lowercase or Title Case, no filler.
+
+# Condensed output
+
+HTML only, dark theme, no markdown. Auto-open only if Chrome and display exist: `command -v google-chrome-stable >/dev/null && { [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && nohup google-chrome-stable "file://$html" >/dev/null 2>&1 &`.
