@@ -1,4 +1,5 @@
 @~/ed.md
+@~/me.md
 
 # Necessity
 
@@ -106,20 +107,12 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 
 - snake_case for vars and functions. Db payload, type defs, request JSON, and page-load return keys are single letters, each commented at its definition.
 - Stored enum and status values are single characters (`st`: `r`=pending, `s`=success, `f`=failed). Map to labels only when displaying.
-- Svelte: runes only (`$props`, `$state`, `$derived`, `$effect`, `$bindable`). Never `export let`.
 - No comments in code, unless they explain a non-obvious WHY or define a single-letter key.
 - No vars for single use.
 - Start the dev server only if none is already running.
 - Use the agent-browser skill to verify everything before declaring done.
 - All Qdrant projects use the collection `i`, always and only.
 - Node projects: if `.log` exists it holds live dev server output. Tail it before diagnosing any server issue, and check it for new errors after every change.
-- Follow the repo design system exactly (`DESIGN.md`, `src/app.css`). If `src/app.css` exists, use its variables, never raw css values.
-- Prefer Tailwind utilities. No inline `style=` and no `<style>` blocks.
-- Tailwind v4 + SvelteKit: `pnpm dlx sv add tailwindcss` wires it up. Theme via `@theme` in `app.css`, no `tailwind.config.js`. Dark mode `@custom-variant dark (&:is(.dark *));`. Add `@reference "tailwindcss";` inside any `<style>` block that needs theme tokens.
-- All UI text (labels, buttons, microcopy) in lowercase.
-- Follow example files exactly. When a new pattern is decided, update the example files.
-- Fonts go in `static/fonts`.
-- Google auth callback URLs are always `/google`.
 
 ## Git workflow
 
@@ -172,21 +165,9 @@ Clone GitHub repos to `~/i/<org-or-user>/<repo-name>`.
 - Repo: `144126/dotfiles` — public at https://github.com/144126/dotfiles — cloned at `~/i/144126/dotfiles` (`/tmp/dotfiles` working copy). Mirrors `~/.tmux.conf` → `tmux/tmux.conf`, `~/.config/foot/foot.ini` → `foot/foot.ini`.
 - Any agent that edits a system config (`~/.tmux.conf`, `~/.config/foot/foot.ini`, `~/.bashrc`, etc.) must copy it to the repo, `git add .`, commit, `git push` in same turn.
 
-# New webapp project (SvelteKit)
+# New webapp project (SvelteKit) — work defaults only
 
-1. **Location**: `~/i/` by default, `~/i/me/` for a personal project.
-2. **Name**: 2-4 characters, digital root 9 (sum letter positions a=1..z=26 plus digits, reduce to one digit). Aesthetic tiebreaker that kills choice paralysis. Never reuse. Check `~/i/` and `~/i/me/`.
-3. **Create**: `cd` to the target dir, then `pnpm dlx sv create <name>`.
-4. **Prompts** in order:
-   - Template: **SvelteKit minimal**
-   - TypeScript: **Yes, using TypeScript syntax**
-   - Add-ons: **prettier, eslint, vitest, playwright, sveltekit-adapter, experimental**
-   - vitest: **unit testing, component testing**
-   - sveltekit-adapter: **cloudflare**, then **Workers**
-   - experimental: **@sveltejs/kit@next**, then **async, remote functions, explicit environment variables, rendering error boundaries, forked preloading**
-5. **Git and GitHub**: `git init && git add . && git commit -m"initial setup"`, then
-   - personal: `gh repo create 144126/<name> --public --source=. --remote=origin --push`
-   - otherwise: `gh repo create angelwingscomms/<name> --public --source=. --remote=origin --push`
+Personal naming/scaffolding (digital root 9, prompts, etc.) is in `~/me.md` (local-only). For work, use the team's standard template; do not enforce personal taste.
 
 # Memory
 
