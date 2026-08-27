@@ -14,4 +14,4 @@ After the first user message, as the last step before finishing your first respo
 
 # Condensed output
 
-HTML only, dark theme, no markdown. Auto-open only if Chrome and display exist: `command -v google-chrome-stable >/dev/null && { [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && nohup google-chrome-stable "file://$html" >/dev/null 2>&1 &`.
+HTML only, dark theme, no markdown. Auto-open only if display then Chrome: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$html" >/dev/null 2>&1 &`.
