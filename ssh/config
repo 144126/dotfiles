@@ -7,7 +7,7 @@ Host pilotspan-dev-workspace
     AddKeysToAgent yes
     GSSAPIAuthentication no
     Compression no
-    IPQoS throughput
+    IPQoS lowdelay throughput
     TCPKeepAlive yes
     ServerAliveInterval 60
     ServerAliveCountMax 3
