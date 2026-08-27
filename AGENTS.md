@@ -111,7 +111,6 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 - No vars for single use.
 - Start the dev server only if none is already running.
 - Use the agent-browser skill to verify everything before declaring done.
-- All Qdrant projects use the collection `i`, always and only.
 - Node projects: if `.log` exists it holds live dev server output. Tail it before diagnosing any server issue, and check it for new errors after every change.
 
 ## Git workflow
@@ -119,46 +118,9 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 - After every edit turn: `git add .`, commit, `git push`. Message follows Commit messages. A failed push is fine, the commit is what matters.
 - `.env` is always gitignored. Never commit it.
 
-## Cloudflare and Wrangler secrets store
+# Browser — local only (see ~/me.md if needed)
 
-- Read secrets and var bindings only via `$env/dynamic/private`:
-  ```ts
-  import { env } from '$env/dynamic/private';
-  const id = env.GOOGLE_ID;            // plain [vars] / per-Worker secrets: sync string
-  const sk = await env.SECRET.get();   // Secrets Store bindings: async object
-  ```
-- Always go through `SecretVal` sitewide: `type SecretVal = string | { get?: () => Promise<string> }`, read via the repo `get_secret(v)` helper. Never read a secret binding as a raw string. Never reintroduce raw `env.KEY` reads or per-call `.get()` unwrapping.
-- Local dev: remote Secrets Store secrets are not readable locally. Use `wrangler dev` plus local secrets from `wrangler secrets-store secret create <store_id> --name KEY --scopes workers` (no `--remote`). Plain `[vars]` load from `.env`.
-- **Always use `.env` for local env vars, never `.dev.vars`.** Delete `.dev.vars` if it exists.
-- Production: declare secrets in `wrangler.toml` or `wrangler.jsonc` under `secrets_store_secrets: [{ binding, store_id, secret_name }]`. Non-secret config under `[vars]`.
-- First deploy: `pnpm install` fails with "packages field missing or empty" when `pnpm-workspace.yaml` has `allowBuilds` but no `packages`. Add `packages: ['.']` beside the `allowBuilds` block.
-- **Never put `wrangler types` in the `build` script.** Keep `build` as `vite build` only. Remove it on sight, and on any reported deployment issue that may involve wrangler types.
-
-# API keys (live secrets)
-
-- `OPENROUTER_API_KEY` — export in `~/.bashrc` (used by codex, claudex, and local scripts).
-- `BUFFER_API_KEY` — export in `~/.bashrc` (hgc social posting via developers.buffer.com). The hgc-agent worker also keeps it as a wrangler secret `BUFFER_TOKEN` for production reads; the `.bashrc` copy is for local scripts.
-
-# Browser
-
-- **Never let agent-browser write its profile into `/tmp`.** A Chrome profile fills the tmpfs there and breaks every command on the machine. Run with `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.
-- **Hitting a login wall on a site Ed is already logged into: clone the profile, do not ask him to
-  log in again and do not close his browser.**
-
-  ```bash
-  agent-browser --profile "$(chrome-profile-clone Default)" open <url>
-  ```
-
-  `chrome-profile-clone` lives in `~/.local/bin`. It copies the cookie store plus `Local State`,
-  which holds the key that decrypts it, into a 5MB throwaway user-data-dir. `--profile Default`
-  fails on its own because a running Chrome holds the lock on the real profile, and the real profile
-  is far too large to copy whole.
-- Chrome profile names map to directories: `Default` is `gold1440`. `agent-browser profiles` lists them.
-- `--profile` is ignored when a daemon is already running. `agent-browser close --all` first.
-
-# Clone convention
-
-Clone GitHub repos to `~/i/<org-or-user>/<repo-name>`.
+# Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
 
 # Dotfiles
 

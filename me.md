@@ -10,12 +10,16 @@ These are Ed's personal webapp defaults. Keep them local; don't enforce at work.
 - Follow the repo design system exactly (`DESIGN.md`, `src/app.css`). If `src/app.css` exists, use its variables, never raw css values.
 - Prefer Tailwind utilities. No inline `style=` and no `<style>` blocks.
 - Tailwind v4 + SvelteKit: `pnpm dlx sv add tailwindcss` wires it up. Theme via `@theme` in `app.css`, no `tailwind.config.js`. Dark mode `@custom-variant dark (&:is(.dark *));`. Add `@reference "tailwindcss";` inside any `<style>` block that needs theme tokens.
-- Follow example files exactly. When a new pattern is decided, update the example files.
 - Fonts go in `static/fonts`.
 - Google auth callback URLs are always `/google`.
+
 - Svelte: runes only (`$props`, `$state`, `$derived`, `$effect`, `$bindable`). Never `export let`.
 - Stored enum and status values are single characters (`st`: `r`=pending, `s`=success, `f`=failed). Map to labels only when displaying.
 - Snake_case for vars and functions. Db payload, type defs, request JSON, and page-load return keys are single letters, each commented at its definition.
+
+## Clone convention (personal)
+
+Clone GitHub repos to `~/i/<org-or-user>/<repo-name>`.
 
 ## Personal project scaffolding
 
@@ -27,4 +31,10 @@ Personal naming and scaffolding prefs, not work policy.
 
 ## Personal machine setup
 
-- Dotfiles mirrors and personal browser/clone prefs are personal; work VM uses its own chrome profile handling.
+- Dotfiles mirrors and personal clone prefs are personal; work VM uses its own layout.
+
+### Browser (local)
+
+- Never let agent-browser write its profile into `/tmp` (tmpfs). Use `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.
+- Hitting a login wall on a site Ed is already logged into: clone the profile via `chrome-profile-clone`, do not ask to log in again and do not close his browser.
+- `chrome-profile-clone` lives in `~/.local/bin`, copies cookie store + `Local State` to a 5MB throwaway dir. `--profile Default` fails due to lock; real profile too large.
