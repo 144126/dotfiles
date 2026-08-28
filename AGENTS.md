@@ -37,6 +37,7 @@ This never overrides a safety check on a destructive or irreversible action, and
   - Keep numbers, code, commands, paths, error strings, and technical names exact.
   - "eli9" = explain like i'm 9. Already the default, so it means go simpler still.
 - Always `pnpm`, never npm or npx.
+- Web is Firecrawl CLI, not Parallel. `firecrawl search "q"` find pages. `firecrawl scrape "<url>"` one page to markdown. `firecrawl map "<url>" --search "term"` list URLs on a site. `firecrawl crawl "<url>" --include-paths /docs --limit 50 --wait` bulk a section. `firecrawl developer "error or api question"` issues/PRs/READMEs/docs. `firecrawl parse ./file.pdf` local PDF/DOCX/XLSX to markdown. Write to `.firecrawl/` with `-o`. Quote URLs. `firecrawl --help` for flags. Do not use `firecrawl agent`.
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
