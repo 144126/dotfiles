@@ -17,6 +17,7 @@ Host pilotspan-dev-workspace
     AddressFamily inet
     CanonicalizeHostname no
     SetEnv TERM=xterm-256color
+    LocalForward 3010 localhost:3010
     LocalForward 3690 localhost:3690
     LocalForward 3000 localhost:3000
     LocalForward 3001 localhost:3001

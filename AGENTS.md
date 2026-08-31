@@ -16,11 +16,13 @@ Apply it at every level and in every nuance, always:
 
 When unsure whether a thing is needed, cut it. Do not add care the task does not need. Do not widen scope to be safe. Do not keep a thing because removing it feels risky — that feeling is not evidence.
 
+Razor: if it still works without it, delete it. Keep only commands, code, and config that must run — cut prose, explanation, and duplication. Skills and docs keep only executable content. Every new skill must be extremely minimal.
+
 This never overrides a safety check on a destructive or irreversible action, and it never means leaving asked-for work unfinished.
 
 # General
 
-- This is `~/AGENTS.md`. Skills: `~/.agents/skills/*/SKILL.md`. Commands: `~/.agents/commands/`.
+- This is `~/AGENTS.md`. Skills: `~/.agents/skills/*/SKILL.md` — always extremely minimal, executable content only. Commands: `~/.agents/commands/`.
 - **"dtjd" = don't think just do.** Skip analysis, plan, options, extra reading, and scope beyond the words. Edit, commit, push, answer in one line. Overrides effort level. Never overrides a safety check on a destructive command.
 - Unknown error that one attempt does not fix: search the net before acting further.
 - `source ~/.bashrc` after new aliases or config.
@@ -41,6 +43,7 @@ This never overrides a safety check on a destructive or irreversible action, and
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
+- **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
 
 # Verbalized sampling
 
@@ -120,6 +123,10 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 - `.env` is always gitignored. Never commit it.
 
 # Browser — local only (see ~/me.md)
+- When a video/image/html is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
+
+# 1440fl
+- to open with agent-browser always use `ab-1440fl <url>`
 
 # Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
 
