@@ -4,7 +4,7 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["tray", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "modules-right": ["tray", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
     "tray": {
         "spacing": 6
     },
@@ -50,6 +50,13 @@
         "interval": 5,
         "format": " {} ",
         "signal": 2
+    },
+    "custom/scale": {
+        "exec": "~/.config/waybar/scale.sh",
+        "return-type": "json",
+        "interval": 5,
+        "format": " {} ",
+        "signal": 3
     },
     "custom/speed": {
         "exec": "~/.config/waybar/speed.sh",

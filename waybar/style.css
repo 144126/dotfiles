@@ -31,6 +31,10 @@ window#waybar {
     color: #a3be8c;
 }
 
+#custom-scale {
+    color: #81a1c1;
+}
+
 #custom-speed {
     color: #aaaaaa;
 }
@@ -68,6 +72,7 @@ window#waybar {
 }
 
 #custom-display,
+#custom-scale,
 #custom-speed,
 #custom-data,
 #network,

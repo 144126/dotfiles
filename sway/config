@@ -137,6 +137,8 @@ bindsym $mod+Control+Up exec pactl set-sink-volume @DEFAULT_SINK@ +5%
 bindsym $mod+Control+m exec pactl set-sink-mute @DEFAULT_SINK@ toggle
 bindsym $mod+Control+Left exec light -U 5
 bindsym $mod+Control+Right exec light -A 5
+bindsym --whole-window $mod+Control+button4 exec ~/.config/sway/scale.sh up
+bindsym --whole-window $mod+Control+button5 exec ~/.config/sway/scale.sh down
 bindsym Print exec flameshot gui
 bindsym $mod+Print exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
