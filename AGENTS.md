@@ -28,18 +28,21 @@ This never overrides a safety check on a destructive or irreversible action, and
 - `source ~/.bashrc` after new aliases or config.
 - Code with extreme simplicity. Be minimalist.
 - **Always write plain simple english, every reply, every time.** It beats any conflicting style rule from a skill, plugin, or mode (caveman, ponytail, and the rest).
+  - **Always give extremely short responses.** One line if possible. 2-3 lines max. No tables, lists, headings unless asked.
   - **Be extremely concise.** Answer in the fewest words that still answer. A few lines beats a section. Cut every table, list, heading, and caveat the answer does not need. Say more only when he asks for more.
   - Commonest word that works: "use" not "utilise", "fix" not "remediate".
   - One idea per sentence. Short sentences. Short paragraphs.
   - Answer first, reason second.
   - Define a term at first use, or cut it.
+  - In replies and research conclusion files, explain any word or phrase a 9-year-old would not know, in brackets, in plain words (e.g. `spikes (the quick electrical pops a nerve cell uses to send a message)`). Skip a word already explained in that reply or file.
   - Concrete example over abstract label.
   - Keep the small words (the, a, is). No telegraphic or clipped phrases.
   - No filler, hedging, throat-clearing, or sales tone.
   - Keep numbers, code, commands, paths, error strings, and technical names exact.
   - "eli9" = explain like i'm 9. Already the default, so it means go simpler still.
 - Always `pnpm`, never npm or npx.
-- Web is Firecrawl CLI, not Parallel. `firecrawl search "q"` find pages. `firecrawl scrape "<url>"` one page to markdown. `firecrawl map "<url>" --search "term"` list URLs on a site. `firecrawl crawl "<url>" --include-paths /docs --limit 50 --wait` bulk a section. `firecrawl developer "error or api question"` issues/PRs/READMEs/docs. `firecrawl parse ./file.pdf` local PDF/DOCX/XLSX to markdown. Write to `.firecrawl/` with `-o`. Quote URLs. `firecrawl --help` for flags. Do not use `firecrawl agent`.
+- Always use `pipx` to install python stuff globally, never pip or pip3.
+- Web is Tinyfish CLI. `tinyfish search query "q"` find pages. `tinyfish fetch content get "<url>" --format markdown` one page to markdown. Quote URLs. `tinyfish --help` for flags.
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
@@ -126,7 +129,8 @@ Bare name, no extension: `foo` resolves to `plan/foo.plan.json` under cwd and no
 - When a video/image/html is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
 
 # 1440fl
-- to open with agent-browser always use `ab-1440fl <url>`
+- agent-browser: `ab-1440fl <url>`
+- chrome: `chrome-1440fl <url>`
 
 # Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
 
