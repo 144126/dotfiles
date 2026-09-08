@@ -48,10 +48,6 @@ This never overrides a safety check on a destructive or irreversible action, and
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
 - **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
 
-# Verbalized sampling
-
-When many answers are valid (names, taglines, design directions, copy, any brainstorm), ask for `k` candidates in one call, each with its text and a numeric probability. Use `k` = 5 for creative work, `k` = 20 for open questions. Pick the winner yourself. Full method and templates: `~/.agents/skills/verbalized-sampling/SKILL.md`.
-
 # Writing
 
 Plain simple english governs everything: chat replies, commits, docs, README, PR and issue text, plans, memory notes, error strings, messages to people. Follow the plain simple english bullets under General.
