@@ -1,5 +1,5 @@
-@~/ed.md
-@~/me.md
+read ~/ed.md before a product, naming, or taste decision.
+read ~/me.md only on this machine, and only for personal webapp defaults or chrome profile rules.
 
 # Necessity
 
