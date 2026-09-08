@@ -8,9 +8,9 @@ For longer replies, start with a short WhatsApp-style TLDR for TTS, then a separ
 - Example long: "fixed the wireguard mtu and blue tmux thing, all good now - plus mantle models showing and dotfiles updated ||| Full details below with code..."
 - Example short: "all synced, ready to go"
 
-# Session auto-rename
+# New skills
 
-After the first user message, as the last step before finishing your first response, rename the session to a short suitable name (3-6 words) based on that first message and your answer. Use `PI_SESSION_FILE` env var — edit the `.jsonl` and update the `{"type":"session_info","name":"..."}` line via python json. Keep it short, lowercase or Title Case, no filler.
+When you create a new skill, ask Ed if he wants it on the pi allowlist (`skills` in `~/.pi/agent/settings.json`). Never add it without his yes.
 
 # Condensed output
 
