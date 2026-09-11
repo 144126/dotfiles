@@ -14,7 +14,6 @@ exec foot --server
 set $term footclient -e tmux
 exec_always autotiling
 
-exec gnome-keyring-daemon --start --components=secrets
 exec mako
 exec blueman-applet
 exec CopyQ
