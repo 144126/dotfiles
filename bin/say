@@ -1,10 +1,13 @@
 #!/bin/bash
-# say "text" — Fish Sarah female, no post atempo, exit after first success
+# say "text" — Voxtral Jane GB, no post atempo, exit after first success
 if [ "$1" = "--stop" ]; then pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
+force=0
+if [ "$1" = "--force" ]; then force=1; shift; fi
+[ "$force" = 0 ] && [ "$(cat /home/ed/.pi/speak 2>/dev/null)" = off ] && exit 0
 text="${*:-$(cat)}"; [ -z "$text" ] && exit 0
 wav="/tmp/pi-tts-$$.mp3"
 if [ -n "$OPENROUTER_API_KEY" ]; then
-  jq -n --arg t "$text" --arg v "933563129e564b19a115bedd57b7406a" '{model:"fish-audio/s2.1-pro-free:free",input:$t,voice:$v,response_format:"mp3"}' | curl -s -m 60 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
+  jq -n --arg t "$text" --arg v "${OPENROUTER_TTS_VOICE:-gb_jane_neutral}" --arg m "${OPENROUTER_TTS_MODEL:-mistralai/voxtral-mini-tts-2603}" '{model:$m,input:$t,voice:$v,response_format:"mp3"}' | curl -s -m 60 https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
   if [ -s "$wav" ] && [ $(wc -c < "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then
     ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null || paplay "$wav" 2>/dev/null || aplay "$wav" 2>/dev/null
     exit 0
