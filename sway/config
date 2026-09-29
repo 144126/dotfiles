@@ -8,6 +8,8 @@ xwayland force
 output eDP-1 scale 1
 output "*" bg /home/ed/pics/dreamy_nostalgic_720p.png fill
 
+# relink dotfiles scripts so a wiped ~/.local/bin heals itself
+exec_always mkdir -p ~/.local/bin && ln -sf ~/i/144126/dotfiles/bin/* ~/.local/bin/
 exec_always test -f ~/.Xresources && xrdb -merge ~/.Xresources
 exec mkdir -p /run/user/1000/pulse && ln -sf /run/pipewire/pulse/native /run/user/1000/pulse/native
 exec foot --server
@@ -169,9 +171,10 @@ bindsym $mod+Control+Shift+8 exec ~/.config/sway/clip-multi.sh 8 reverse
 bindsym $mod+Control+Shift+9 exec ~/.config/sway/clip-multi.sh 9 reverse
 bindsym $mod+Control+Shift+0 exec ~/.config/sway/clip-multi.sh 10 reverse
 
-# Global voice: Mod+Ctrl+R — same engine as pi's Ctrl+R (local whisper.cpp on 8081)
-# Toggle: press to start recording, press again to stop → transcribe → wl-copy + Ctrl+V paste
-bindsym $mod+Control+r exec ~/.local/bin/sway-voice-global.sh
+# Global voice: Mod+Ctrl+E start/stop. Mod+Ctrl+R mute/unmute while recording.
+# Stop queues transcription (paste when done). Waybar shows state; click toggles, right-click cancels.
+bindsym $mod+Control+e exec ~/.local/bin/sway-voice-global.sh
+bindsym --no-repeat $mod+Control+r exec ~/.local/bin/sway-voice-global.sh mute
 
 bar {
     swaybar_command waybar

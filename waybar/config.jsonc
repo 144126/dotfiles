@@ -4,7 +4,7 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["tray", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "modules-right": ["custom/voice", "tray", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
     "tray": {
         "spacing": 6
     },
@@ -67,6 +67,16 @@
         "exec": "~/.local/bin/battery-notify.sh",
         "interval": 60,
         "hide-empty-text": true
+    },
+    "custom/voice": {
+        "exec": "~/.local/bin/sway-voice-global.sh status",
+        "return-type": "json",
+        "interval": 1,
+        "signal": 4,
+        "format": " {} ",
+        "hide-empty-text": true,
+        "on-click": "~/.local/bin/sway-voice-global.sh",
+        "on-click-right": "~/.local/bin/sway-voice-global.sh cancel"
     },
     "custom/gemini": {
         "exec": "cat ~/.local/state/gemini-live-daemon/status.txt 2>/dev/null || true",

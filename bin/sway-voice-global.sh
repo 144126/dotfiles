@@ -1,94 +1,164 @@
 #!/bin/bash
-# sway-voice-global — system-wide Mod+Ctrl+R voice toggle, same engine as pi's Ctrl+R.
-# First press: start recording via sox -> /tmp/sway-voice.wav
-# Second press: stop, transcribe via local whisper.cpp (127.0.0.1:8081), wl-copy + Ctrl+V.
-set -uo pipefail
-WAV="/tmp/sway-voice.wav"
-PIDFILE="/tmp/sway-voice.pid"
-LOG="/tmp/sway-voice.log"
-URL="${PI_VOICE_URL:-${VIBEVOICE_ASR_URL:-http://127.0.0.1:8081/v1/audio/transcriptions}}"
-MODEL="${VIBEVOICE_ASR_MODEL:-${PI_VOICE_MODEL:-base}}"
+# Mod+Ctrl+E toggles recording. Mod+Ctrl+R mutes/unmutes the live take so
+# side talk never enters the wav. Each stop queues a transcription that pastes
+# when done, so a new recording can start while older ones transcribe.
+# Args: status (waybar json), cancel (drop the current recording), mute (toggle).
+D="${XDG_RUNTIME_DIR:-/tmp}/voice"
+URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
 GRACE_MS="${PI_VOICE_STOP_GRACE_MS:-1500}"
+LOG="$D/log"
+mkdir -p "$D"
 
-log() { echo "[$(date -Iseconds)] $*" >> "$LOG" 2>/dev/null || true; }
-notify() { notify-send -t 3500 "voice" "$*" 2>/dev/null || true; log "$*"; }
-
-is_recording() {
-  if [ -f "$PIDFILE" ]; then
-    local pid; pid=$(cat "$PIDFILE" 2>/dev/null || echo "")
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then return 0; fi
-    rm -f "$PIDFILE"
-  fi
-  return 1
+log() { echo "[$(date -Iseconds)] $*" >> "$LOG"; }
+notify() { notify-send -t 3500 voice "$*"; log "$*"; }
+bar() { pkill -RTMIN+4 waybar; }
+# rec holds "pid start_epoch" of the live sox
+rec_pid() { read -r p t 2>/dev/null < "$D/rec" && kill -0 "$p" 2>/dev/null && echo "$p $t"; }
+clock() { echo "$(( $1 / 60 )):$(printf %02d $(( $1 % 60 )))"; }
+next_part() {
+  n=0
+  while [ -e "$D/part-$(printf %03d $n).wav" ]; do n=$((n+1)); done
+  echo "$D/part-$(printf %03d $n).wav"
+}
+# INT sox and wait; $1 = pid
+stop_sox() {
+  local pid=$1
+  kill -INT "$pid" 2>/dev/null
+  for _ in $(seq 20); do kill -0 "$pid" 2>/dev/null || return; sleep 0.15; done
+  kill -KILL "$pid" 2>/dev/null
+}
+# park the open rec.wav as the next part (sox still holds the inode)
+park() {
+  local part
+  part=$(next_part)
+  mv "$D/rec.wav" "$part" 2>/dev/null || : > "$part"
+  echo "$part"
 }
 
-if is_recording; then
-  pid=$(cat "$PIDFILE")
-  log "stop requested pid=$pid grace=${GRACE_MS}ms"
-  notify "stopping — capturing trailing audio…"
-  sleep "$(awk "BEGIN{print $GRACE_MS/1000}")"
-  kill -INT "$pid" 2>/dev/null || true
-  for _ in 1 2 3 4 5 6 7 8 9 10 15 20; do
-    kill -0 "$pid" 2>/dev/null || break
-    sleep 0.15
-  done
-  kill -KILL "$pid" 2>/dev/null || true
-  rm -f "$PIDFILE"
-  notify "transcribing…"
-  if [ ! -f "$WAV" ] || [ "$(stat -c%s "$WAV" 2>/dev/null || echo 0)" -le 44 ]; then
-    notify "no speech detected"
-    log "no speech wav missing or too small"
-    exit 0
+case "$1" in
+status)
+  n=$(find "$D" -name 'job-*.wav' | wc -l)
+  out="" cls=""
+  if r=$(rec_pid); then
+    s=$(( $(date +%s) - ${r#* } ))
+    out="● recording $(clock $s)" cls=rec
+  elif [ -f "$D/muted" ]; then
+    out="○ muted" cls=muted
   fi
-  log "transcribing $(stat -c%s "$WAV") bytes to $URL"
-  resp=$(curl -s -m 45 -X POST "$URL" -F "model=$MODEL" -F "file=@$WAV;type=audio/wav" -F "response_format=json" 2>&1 || true)
-  log "resp: ${resp:0:600}"
-  text=$(printf "%s" "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print((d.get('text') or '').strip())" 2>/dev/null || echo "")
-  if [ -z "$text" ]; then
-    err=$(printf "%s" "$resp" | head -c 400)
-    if echo "$err" | grep -qi "ECONNREFUSED\|Failed to connect\|Connection refused"; then
-      notify "whisper not reachable at $URL — is whisper-server running?"
-    elif echo "$resp" | grep -q '"text"'; then
-      notify "no speech detected"
-    else
-      notify "transcription failed"
+  if [ "$n" -gt 0 ]; then
+    t="transcribing"; [ "$n" -gt 1 ] && t="$t $n"
+    out="${out:+$out · }$t" cls=${cls:-busy}
+  fi
+  printf '{"text":"%s","class":"%s"}\n' "$out" "$cls"
+  exit ;;
+cancel)
+  exec 9>"$D/lock"; flock 9
+  had=
+  if r=$(rec_pid); then
+    rm -f "$D/rec"; kill -INT "${r% *}"; sleep 0.3
+    had=1
+  fi
+  [ -f "$D/muted" ] && had=1
+  compgen -G "$D/part-*.wav" >/dev/null && had=1
+  rm -f "$D/rec" "$D/rec.wav" "$D/muted" "$D"/part-*.wav
+  [ -n "$had" ] && notify "recording cancelled"
+  bar; exit ;;
+mute)
+  exec 9>"$D/lock"; flock 9
+  if r=$(rec_pid); then
+    part=$(park)
+    echo "${r#* }" > "$D/muted"
+    rm -f "$D/rec"
+    bar
+    stop_sox "${r% *}"
+    [ "$(stat -c%s "$part" 2>/dev/null || echo 0)" -le 44 ] && rm -f "$part"
+    exit
+  fi
+  if [ -f "$D/muted" ]; then
+    start=$(cat "$D/muted")
+    rm -f "$D/rec.wav"
+    sox -q -d -r 16000 -c 1 -b 16 "$D/rec.wav" silence 1 0.1 1% 2>>"$LOG" 9>&- &
+    echo "$! $start" > "$D/rec"
+    rm -f "$D/muted"
+    bar
+    sleep 0.35
+    if ! kill -0 $! 2>/dev/null; then
+      rm -f "$D/rec"
+      echo "$start" > "$D/muted"
+      bar
+      notify "unmute failed — check mic / sox"
     fi
-    log "transcription failed resp=$resp"
-    exit 0
   fi
-  # copy to clipboard (wl-copy forks, stays alive)
-  printf "%s" "$text" | wl-copy 2>/dev/null || printf "%s" "$text" | wl-copy -n 2>/dev/null || true
-  # also push through cliphist via wl-paste watch, give it a moment
-  sleep 0.2
-  # paste blindly via Ctrl+V as requested — works for most apps. wtype synthesizes virtual keyboard.
-  if command -v wtype >/dev/null 2>&1; then
-    wtype -M ctrl -k v -m ctrl 2>/dev/null || wtype -- "$text" 2>/dev/null || true
-    # fallback: if ctrl+v didn't paste (e.g. terminal needs shift), also type directly after short delay
-    # we don't double-type: wtype ctrl+v already pasted, so only fallback if user wants raw type.
-    # Uncomment next line to always type as fallback:
-    # sleep 0.05; wtype -- "$text" 2>/dev/null || true
-  elif command -v ydotool >/dev/null 2>&1; then
-    ydotool key 29:1 47:1 47:0 29:0 2>/dev/null || true
-  elif command -v xdotool >/dev/null 2>&1; then
-    xdotool key ctrl+v 2>/dev/null || true
-  fi
-  notify "${text:0:80}"
-  log "done text=${text:0:120}"
-  exit 0
-else
-  rm -f "$WAV"
-  log "starting recording"
-  notify "recording — press Mod+Ctrl+R again to stop"
-  # same sox invocation pi uses: 16kHz mono, silence trim to avoid leading silence file header issues
-  sox -d -r 16000 -c 1 -b 16 "$WAV" silence 1 0.1 1% >>"$LOG" 2>&1 &
-  pid=$!
-  echo "$pid" > "$PIDFILE"
+  exit ;;
+esac
+
+exec 9>"$D/lock"; flock 9
+if ! r=$(rec_pid) && [ ! -f "$D/muted" ]; then
+  rm -f "$D/rec.wav" "$D/muted" "$D"/part-*.wav
+  sox -q -d -r 16000 -c 1 -b 16 "$D/rec.wav" silence 1 0.1 1% 2>>"$LOG" 9>&- &
+  echo "$! $(date +%s)" > "$D/rec"
+  bar
   sleep 0.35
-  if ! kill -0 "$pid" 2>/dev/null; then
-    notify "recording failed — check mic / sox"
-    log "sox died immediately"
-    rm -f "$PIDFILE"
-    exit 1
-  fi
-  log "recording pid=$pid"
+  kill -0 $! 2>/dev/null || { rm -f "$D/rec"; bar; notify "recording failed — check mic / sox"; }
+  exit
 fi
+
+# sox keeps writing through its open fd, so renaming now is safe.
+# parts from earlier mute/unmute cycles move aside so a new take can start.
+id=$(date +%s%N)
+job="$D/job-$id.wav"
+stk="$D/stk-$id"
+mkdir -p "$stk"
+mv "$D"/part-*.wav "$stk"/ 2>/dev/null || :
+if r=$(rec_pid); then
+  mv "$D/rec.wav" "$stk/part-zzz.wav" 2>/dev/null || : > "$stk/part-zzz.wav"
+  pid=${r% *}
+else
+  pid=
+fi
+rm -f "$D/rec" "$D/muted"
+trap 'rm -rf "$stk"; rm -f "$job"; bar' EXIT
+bar
+exec 9>&-
+
+if [ -n "$pid" ]; then
+  sleep "$(awk "BEGIN{print $GRACE_MS/1000}")"
+  stop_sox "$pid"
+fi
+
+files=()
+for f in "$stk"/part-*.wav; do
+  [ -f "$f" ] && [ "$(stat -c%s "$f")" -gt 44 ] && files+=("$f")
+done
+if [ ${#files[@]} -eq 0 ]; then notify "no speech detected"; exit; fi
+if [ ${#files[@]} -eq 1 ]; then
+  mv "${files[0]}" "$job"
+else
+  sox "${files[@]}" "$job" 2>>"$LOG" || { notify "could not join recording parts"; exit; }
+fi
+rm -rf "$stk"
+
+if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
+# the server handles one request at a time, so queued jobs finish and paste in the order they stopped
+for try in 1 2 3; do
+  text=$(curl -sSf -m 1620 --data-binary @"$job" "$URL" 2>>"$LOG") && break
+  if [ $try = 3 ]; then
+    keep=~/voice-failed/$(date +%F-%H%M%S).wav
+    mkdir -p ~/voice-failed; mv "$job" "$keep"
+    notify "transcription failed — audio kept at $keep"; exit
+  fi
+  sleep 3
+done
+text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+[ -z "$text" ] && { notify "no speech detected"; exit; }
+
+# trailing space so back-to-back dictations don't glue words together
+printf '%s ' "$text" | wl-copy
+sleep 0.2
+app=$(swaymsg -t get_tree | jq -r '.. | select(.focused? == true) | .app_id // empty')
+# foot pastes on Ctrl+Shift+V, not Ctrl+V
+case "$app" in
+foot*) wtype -M ctrl -M shift -k v -m shift -m ctrl ;;
+*) wtype -M ctrl -k v -m ctrl ;;
+esac
+notify "${text:0:80}"

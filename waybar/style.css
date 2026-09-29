@@ -84,3 +84,13 @@ window#waybar {
 #clock {
     padding: 0 6px;
 }
+
+#custom-voice.rec {
+    color: #bf616a;
+}
+#custom-voice.muted {
+    color: #7c7c7c;
+}
+#custom-voice.busy {
+    color: #ebcb8b;
+}
