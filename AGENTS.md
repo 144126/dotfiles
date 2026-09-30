@@ -46,6 +46,7 @@ This never overrides a safety check on a destructive or irreversible action, and
 - Always use `pipx` to install python stuff globally, never pip or pip3.
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
+- Dump: dump.apexlinks.org — `~/i/dump`. Random temp things to share. Festus slides `/festus-preachers/slides`, contradictions `/festus-preachers/contradictions`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
 - **Music generation**: use the `yue2` skill — YuE (https://github.com/multimodal-art-projection/YuE) on lightning.ai. Never another music model.
 - **Lightning.ai**: org `144126-org`, teamspace `default-project`. Key lives only in `~/.lightning/credentials.json` (`api_key` only). Never write it into a repo.
