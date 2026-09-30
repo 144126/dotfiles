@@ -45,7 +45,7 @@ Personal naming and scaffolding prefs, not work policy.
 - agent-browser drives Ed's real running Chrome (default profile, all logins). `~/.agent-browser/config.json` sets `autoConnect`, `pinTab`, `idleTimeout: "0"`; the toggle at `chrome://inspect/#remote-debugging` is on. Use plain `agent-browser <cmd>`, no flags.
 - Each new daemon connection makes Chrome show one "Allow" pop-up for Ed. Keep the default session; do not `close` it or start new `--session` names without need.
 - Never pass `--profile`, `AGENT_BROWSER_PROFILE`, or `chrome-profile-clone` (copies launch with `--password-store=basic`, so cookies cannot decrypt).
-- Work in your own tab (`tab new`). Never navigate or close Ed's tabs.
+- Never `tab new`: it opens in Chrome's last-used profile (e.g. Gold), not Default (1440fl). Use `open <url>` in the session's pinned tab. On `tab_gone`: `tab` to Ed's Gmail or X tab, `eval` an `<a id=abx target=_blank href=URL>`, `click '#abx'`, remove it, then `tab` to the new tab. Never navigate or close Ed's tabs.
 - "No running Chrome instance found": ask Ed to open Chrome. Isolated headless run: `--auto-connect false`.
 
 ## Compliant providers (HIPAA/SOC 2, GLM-5.3-Flash)
