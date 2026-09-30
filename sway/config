@@ -15,6 +15,9 @@ exec mkdir -p /run/user/1000/pulse && ln -sf /run/pipewire/pulse/native /run/use
 exec foot --server
 set $term footclient -e tmux
 exec_always autotiling
+exec swayidle -w timeout 144 ~/.local/bin/sway-blank
+# the Gemini daemon keeps the mic open, so it must not count as playing
+exec sway-audio-idle-inhibit --ignore-source-outputs Lavf60.16.101
 
 exec mako
 exec blueman-applet
@@ -145,8 +148,8 @@ bindsym Print exec flameshot gui
 bindsym $mod+Print exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
 
-# Screenshot current screen straight to clipboard
-bindsym $mod+Control+a exec grim - | wl-copy
+# Screen off and keyboard/mouse locked until Mod+Ctrl+A again. Also after 144s idle.
+bindsym $mod+Control+a exec ~/.local/bin/sway-blank
 
 # Clipboard history multi-paste: Mod+Ctrl+N copies last N items (chronological order) to clipboard
 # Mod+Ctrl+Shift+N copies last N items (reverse/newest-first) to clipboard

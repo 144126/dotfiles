@@ -1,0 +1,43 @@
+#!/usr/bin/python3
+import fcntl, select, subprocess, time
+from evdev import InputDevice, list_devices, ecodes as e
+
+lock = open('/run/user/1000/sway-blank.lock', 'w')
+try:
+    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except OSError:
+    exit()
+
+devs = []
+for p in list_devices():
+    d = InputDevice(p)
+    k = d.capabilities().get(e.EV_KEY, [])
+    if e.KEY_A in k or e.BTN_LEFT in k or e.BTN_TOUCH in k:
+        devs.append(d)
+
+# grabbing while a key is held leaves sway thinking it is still down
+def wait_released():
+    while any(d.active_keys() for d in devs):
+        time.sleep(0.05)
+
+wait_released()
+for d in devs:
+    d.grab()
+subprocess.run(['swaymsg', 'output * power off'])
+
+meta = {e.KEY_LEFTMETA, e.KEY_RIGHTMETA}
+ctrl = {e.KEY_LEFTCTRL, e.KEY_RIGHTCTRL}
+done = False
+try:
+    while not done:
+        r, _, _ = select.select(devs, [], [])
+        for d in r:
+            for ev in d.read():
+                if ev.type == e.EV_KEY and ev.code == e.KEY_A and ev.value == 1:
+                    down = set(d.active_keys())
+                    done = bool(down & meta and down & ctrl)
+    wait_released()
+    for d in devs:
+        d.ungrab()
+finally:
+    subprocess.run(['swaymsg', 'output * power on'])
