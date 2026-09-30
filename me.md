@@ -41,5 +41,14 @@ Personal naming and scaffolding prefs, not work policy.
 ### Browser (local)
 
 - Never let agent-browser write its profile into `/tmp` (tmpfs). Use `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.
-- Hitting a login wall on a site Ed is already logged into: clone the profile via `chrome-profile-clone`, do not ask to log in again and do not close his browser.
-- `chrome-profile-clone` lives in `~/.local/bin`, copies cookie store + `Local State` to a 5MB throwaway dir. `--profile Default` fails due to lock; real profile too large.
+- Opening anything in chrome for Ed: always his default profile. Bare `google-chrome-stable <url/file>`, never another `--profile-directory` or `--user-data-dir`.
+- Logged-in sites: agent-browser uses `~/.config/chrome-agent` via `AGENT_BROWSER_PROFILE` in `~/.bashrc`. Ed logs in there once per site. Never pass `--profile` and never use `chrome-profile-clone` (logins did not carry over).
+- One agent at a time in that profile. If it is busy, ask Ed.
+- New site login wall: `agent-browser --headed open <login url>`, then ask Ed to log in.
+
+## Compliant providers (HIPAA/SOC 2, GLM-5.3-Flash)
+
+- Atlas Cloud
+- Baseten
+- FriendliAI
+- Together AI
