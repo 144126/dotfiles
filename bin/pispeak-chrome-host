@@ -8,9 +8,9 @@ import sys
 
 SAY = "/home/ed/.local/bin/say"
 BASHRC = os.path.expanduser("~/.bashrc")
-DEFAULT_VOICE = "gb_jane_neutral"
-DEFAULT_MODEL = "mistralai/voxtral-mini-tts-2603"
-KEYS = ("OPENROUTER_API_KEY", "OPENROUTER_TTS_VOICE", "OPENROUTER_TTS_MODEL")
+DEFAULT_VOICE = "adam"
+DEFAULT_MODEL = "tts-1"
+KEYS = ("FREYA_API_KEY", "FREYA_TTS_VOICE", "FREYA_TTS_MODEL")
 
 
 def read_msg():
@@ -60,9 +60,9 @@ def cfg():
     env = env_for_say()
     return {
         "ok": True,
-        "voice": env.get("OPENROUTER_TTS_VOICE") or DEFAULT_VOICE,
-        "model": env.get("OPENROUTER_TTS_MODEL") or DEFAULT_MODEL,
-        "has_key": bool(env.get("OPENROUTER_API_KEY")),
+        "voice": env.get("FREYA_TTS_VOICE") or DEFAULT_VOICE,
+        "model": env.get("FREYA_TTS_MODEL") or DEFAULT_MODEL,
+        "has_key": bool(env.get("FREYA_API_KEY")),
     }
 
 

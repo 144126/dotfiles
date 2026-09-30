@@ -6,6 +6,7 @@ import fs from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const SAY = "/home/ed/.local/bin/say";
+const FLAG = "/home/ed/.pi/speak";
 // when set (remote machines), tts is synthesized+played on the laptop via bridge
 const TTS_URL = process.env.PI_TTS_URL || "";
 const BRIDGE_TOKEN = process.env.PI_BRIDGE_TOKEN || "";
@@ -14,7 +15,18 @@ function authHeaders(): Record<string, string> {
 	return BRIDGE_TOKEN ? { "X-Bridge-Token": BRIDGE_TOKEN } : {};
 }
 
-let enabled = true;
+function speaking(): boolean {
+	try {
+		return fs.readFileSync(FLAG, "utf8").trim() !== "off";
+	} catch {
+		return true;
+	}
+}
+
+function setSpeaking(on: boolean) {
+	fs.writeFileSync(FLAG, on ? "on\n" : "off\n");
+}
+
 let sayProc: ChildProcess | null = null;
 
 function stopSpeaking() {
@@ -51,7 +63,7 @@ function clean(text: string): string {
 
 export default function speak(pi: ExtensionAPI) {
 	pi.on("message_end", async (event) => {
-		if (!enabled || event.message.role !== "assistant") return;
+		if (!speaking() || event.message.role !== "assistant") return;
 		const content = event.message.content;
 		const text =
 			typeof content === "string"
@@ -95,8 +107,10 @@ export default function speak(pi: ExtensionAPI) {
 	pi.registerCommand("speak", {
 		description: "Toggle speaking replies out loud",
 		handler: async (args, ctx) => {
-			enabled = args?.trim() ? args.trim() === "on" : !enabled;
-			ctx.ui.notify(`speaking ${enabled ? "on" : "off"}`, "info");
+			const on = args?.trim() ? args.trim() === "on" : !speaking();
+			setSpeaking(on);
+			if (!on) stopSpeaking();
+			ctx.ui.notify(`speaking ${on ? "on" : "off"}`, "info");
 		},
 	});
 }

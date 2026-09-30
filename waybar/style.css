@@ -31,6 +31,35 @@ window#waybar {
     color: #a3be8c;
 }
 
+#custom-hp-db {
+    color: #8fbcbb;
+}
+#custom-hp-db.ok {
+    color: #8fbcbb;
+}
+#custom-hp-db.warm {
+    color: #ebcb8b;
+}
+#custom-hp-db.hot {
+    color: #d08770;
+}
+#custom-hp-db.hurt {
+    color: #bf616a;
+}
+#custom-hp-db.muted {
+    color: #bf616a;
+}
+
+#keyboard-state > label {
+    padding: 0;
+    min-width: 0;
+    font-size: 0;
+}
+#keyboard-state > label.locked {
+    color: #bf616a;
+    font-size: 12px;
+}
+
 #custom-scale {
     color: #81a1c1;
 }
@@ -71,7 +100,9 @@ window#waybar {
     color: #ffffff;
 }
 
+#keyboard-state,
 #custom-display,
+#custom-hp-db,
 #custom-scale,
 #custom-speed,
 #custom-data,

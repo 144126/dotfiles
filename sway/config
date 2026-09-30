@@ -43,24 +43,16 @@ bindsym $mod+Shift+a exec flameshot gui
 bindsym $mod+Shift+v exec cliphist list | wmenu | cliphist decode | wl-copy
 bindsym $mod+Shift+r exec sh -c 'sway-mirror --stop 2>/dev/null; pkill -USR2 waybar 2>/dev/null'
 
-# Gemini Live push-to-talk: hold Mod4+z to talk, release to send/respond
-bindsym --no-repeat $mod+z exec /usr/bin/node /home/i/gemini_daemon/client.mjs down
-bindsym --release $mod+z exec /usr/bin/node /home/i/gemini_daemon/client.mjs up
+# Gemini Live: Super+Shift+z start/end session. Super+z mute/unmute while it is on.
+bindsym --no-repeat $mod+Shift+z exec /home/i/gemini_daemon/always-on-audio.sh
+bindsym --no-repeat $mod+z exec /usr/bin/node /home/i/gemini_daemon/client.mjs mute
 
-# Gemini Live screenshot+talk: hold Mod4+a — captures a screenshot + your voice, release to send
+# Super+a sends a screenshot into the live session. Super+q starts screen frames.
 bindsym --no-repeat $mod+a exec /home/i/gemini_daemon/mod-a.sh
-bindsym --release $mod+a exec /usr/bin/node /home/i/gemini_daemon/client.mjs up
-
-# Gemini Live screen recording+talk: hold Mod4+q — records screen + your voice, release to send
 bindsym --no-repeat $mod+q exec /home/i/gemini_daemon/mod-q.sh
-bindsym --release $mod+q exec /usr/bin/node /home/i/gemini_daemon/client.mjs up
 
-# Gemini Live always-on audio: press Mod4+Shift+z to toggle conversation mode (like i/18 static)
-# Just talk — Gemini responds when you stop. Press again for push-to-talk.
-bindsym $mod+Shift+z exec /home/i/gemini_daemon/always-on-audio.sh
-
-# Gemini Live always-on video: press Mod4+Shift+d to toggle conversation mode with screen recording
-bindsym $mod+Shift+d exec /home/i/gemini_daemon/always-on-video.sh
+# Super+Shift+d: same session with screen recording
+bindsym --no-repeat $mod+Shift+d exec /home/i/gemini_daemon/always-on-video.sh
 
 bindsym $mod+$left focus left
 bindsym $mod+$down focus down

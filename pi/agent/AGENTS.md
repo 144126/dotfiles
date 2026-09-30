@@ -8,10 +8,10 @@ For longer replies, start with a short WhatsApp-style TLDR for TTS, then a separ
 - Example long: "fixed the wireguard mtu and blue tmux thing, all good now - plus mantle models showing and dotfiles updated ||| Full details below with code..."
 - Example short: "all synced, ready to go"
 
+# Web
+
+Web is Tinyfish CLI. `tinyfish search query "q"` find pages. `tinyfish fetch content get "<url>" --format markdown` one page to markdown. Quote URLs. `tinyfish --help` for flags.
+
 # New skills
 
 When you create a new skill, ask Ed if he wants it on the pi allowlist (`skills` in `~/.pi/agent/settings.json`). Never add it without his yes.
-
-# Condensed output
-
-HTML only, dark theme, no markdown. Auto-open only if display then Chrome: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$html" >/dev/null 2>&1 &`.

@@ -4,9 +4,22 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["custom/voice", "tray", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "custom/telegram": {
+        "format": " tg ",
+        "tooltip-format": "Open Telegram",
+        "on-click": "~/Downloads/Telegram/Telegram"
+    },
     "tray": {
         "spacing": 6
+    },
+    "keyboard-state": {
+        "capslock": true,
+        "format": "{icon}",
+        "format-icons": {
+            "locked": "CAPS",
+            "unlocked": ""
+        }
     },
     "clock": {
         "format": "{:%a %d %b %H:%M}",
@@ -42,6 +55,13 @@
     "temperature": {
         "format": "{temperatureC}°C",
         "interval": 5
+    },
+    "custom/hp-db": {
+        "exec": "~/.config/waybar/hp-db.sh",
+        "return-type": "json",
+        "interval": 2,
+        "format": " {} ",
+        "hide-empty-text": true
     },
     "custom/display": {
         "exec": "~/.config/waybar/display-mode.sh",

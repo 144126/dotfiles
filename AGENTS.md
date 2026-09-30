@@ -8,7 +8,7 @@ read ~/me.md only on this machine, and only for personal webapp defaults or chro
 Apply it at every level and in every nuance, always:
 
 - Every feature, file, dependency, abstraction, and config line.
-- Every word in every reply, commit, doc, and error string.
+- Every word in every commit, doc, error string, and tool-facing note. User-facing speech is the exception: same facts, scannable (see General).
 - Every tool call, every read, every check, every retry.
 - Every step in a plan, every gate, every note.
 - Every element, style, and animation in a UI.
@@ -17,6 +17,8 @@ Apply it at every level and in every nuance, always:
 When unsure whether a thing is needed, cut it. Do not add care the task does not need. Do not widen scope to be safe. Do not keep a thing because removing it feels risky — that feeling is not evidence.
 
 Razor: if it still works without it, delete it. Keep only commands, code, and config that must run — cut prose, explanation, and duplication. Skills and docs keep only executable content. Every new skill must be extremely minimal.
+
+Perfection does not matter. Speed is most important. Speed to action means speed to information. The action must still be necessary.
 
 This never overrides a safety check on a destructive or irreversible action, and it never means leaving asked-for work unfinished.
 
@@ -27,9 +29,9 @@ This never overrides a safety check on a destructive or irreversible action, and
 - Unknown error that one attempt does not fix: search the net before acting further.
 - `source ~/.bashrc` after new aliases or config.
 - Code with extreme simplicity. Be minimalist.
+- Creative work (names, copy, UI, design, video, music, stories, ideas): follow `~/.agents/skills/creative/SKILL.md`. Video edits: also `~/.agents/skills/video-edit/SKILL.md`. Sound: also `~/.agents/skills/sound-design/SKILL.md`. Graphics: also `~/.agents/skills/graphic-design/SKILL.md`.
 - **Always write plain simple english, every reply, every time.** It beats any conflicting style rule from a skill, plugin, or mode (caveman, ponytail, and the rest).
-  - **Always give extremely short responses.** One line if possible. 2-3 lines max. No tables, lists, headings unless asked.
-  - **Be extremely concise.** Answer in the fewest words that still answer. A few lines beats a section. Cut every table, list, heading, and caveat the answer does not need. Say more only when he asks for more.
+  - **When speaking to the user: same facts, easy to scan.** Answer first, one short line. Then short bullets, short headings, or a small table. No wall of paragraphs. Do not drop a number, path, or reason to look short. Do not pad. A 9-year-old should still follow each line. No jargon without a bracketed gloss. Extra length only if a fact would be missing without it.
   - Commonest word that works: "use" not "utilise", "fix" not "remediate".
   - One idea per sentence. Short sentences. Short paragraphs.
   - Answer first, reason second.
@@ -39,18 +41,27 @@ This never overrides a safety check on a destructive or irreversible action, and
   - Keep the small words (the, a, is). No telegraphic or clipped phrases.
   - No filler, hedging, throat-clearing, or sales tone.
   - Keep numbers, code, commands, paths, error strings, and technical names exact.
-  - "eli9" = explain like i'm 9. Already the default, so it means go simpler still.
+  - "eli9" = explain like i'm 9. Same facts, simpler words, still scannable. Not a wall.
 - Always `pnpm`, never npm or npx.
 - Always use `pipx` to install python stuff globally, never pip or pip3.
-- Web is Tinyfish CLI. `tinyfish search query "q"` find pages. `tinyfish fetch content get "<url>" --format markdown` one page to markdown. Quote URLs. `tinyfish --help` for flags.
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
+- **Music generation**: use the `yue2` skill — YuE (https://github.com/multimodal-art-projection/YuE) on lightning.ai. Never another music model.
+- **Lightning.ai**: org `144126-org`, teamspace `default-project`. Key lives only in `~/.lightning/credentials.json` (`api_key` only). Never write it into a repo.
 - **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
+
+# Change log
+
+Do not ask for a yes before changing files. Just do the work.
+
+After the work, list every file you changed: path, what changed, and why. Say what you deleted. If the work drifted from the request, say what and why.
+
+Destructive or irreversible actions still need a yes first (see Git workflow).
 
 # Writing
 
-Plain simple english governs everything: chat replies, commits, docs, README, PR and issue text, plans, memory notes, error strings, messages to people. Follow the plain simple english bullets under General.
+Plain simple english governs everything: chat replies, commits, docs, README, PR and issue text, plans, memory notes, error strings, messages to people. Follow the plain simple english bullets under General. Chat replies keep every fact, in a shape that is fast to scan. Not a wall. Not a 1-3 line shrug.
 
 ## Commit messages — Conventional Commits + the seven rules
 
@@ -95,7 +106,7 @@ If the user names a `*.plan.json` with no other context, read `~/.agents/skills/
 - `.env` is always gitignored. Never commit it.
 
 # Browser — local only (see ~/me.md)
-- When a video/image/html is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
+- When a video/image is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
 
 # 1440fl
 - agent-browser: `ab-1440fl <url>`

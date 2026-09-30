@@ -1,6 +1,6 @@
 {
   "name": "com.ed.pispeak",
-  "description": "Share pispeak OpenRouter TTS config with Chrome",
+  "description": "Share pispeak Freya TTS config with Chrome",
   "path": "/home/ed/.local/bin/pispeak-chrome-host",
   "type": "stdio",
   "allowed_origins": [

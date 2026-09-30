@@ -21,7 +21,7 @@ All originals are `ln -sf ~/i/144126/dotfiles/...` so editing `~/.config/sway/co
 ```bash
 xbps-install -S sway Waybar swaybg autotiling python3-i3ipc \
   wmenu mako foot foot-terminfo \
-  wl-clipboard cliphist grim slurp flameshot \
+  wl-clipboard cliphist grim slurp flameshot wl-mirror \
   light playerctl jq CopyQ \
   blueman bluez libspa-bluetooth pipewire wireplumber \
   jq playerctl light
