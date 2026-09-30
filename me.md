@@ -42,9 +42,11 @@ Personal naming and scaffolding prefs, not work policy.
 
 - Never let agent-browser write its profile into `/tmp` (tmpfs). Use `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.
 - Opening anything in chrome for Ed: always his default profile. Bare `google-chrome-stable <url/file>`, never another `--profile-directory` or `--user-data-dir`.
-- Logged-in sites: agent-browser uses `~/.config/chrome-agent` via `AGENT_BROWSER_PROFILE` in `~/.bashrc`. Ed logs in there once per site. Never pass `--profile` and never use `chrome-profile-clone` (logins did not carry over).
-- One agent at a time in that profile. If it is busy, ask Ed.
-- New site login wall: close agent-browser, run plain `google-chrome-stable --user-data-dir=$HOME/.config/chrome-agent <login url>` (Google blocks sign-in in automated browsers), ask Ed to log in and close it.
+- agent-browser drives Ed's real running Chrome (default profile, all logins). `~/.agent-browser/config.json` sets `autoConnect`, `pinTab`, `idleTimeout: "0"`; the toggle at `chrome://inspect/#remote-debugging` is on. Use plain `agent-browser <cmd>`, no flags.
+- Each new daemon connection makes Chrome show one "Allow" pop-up for Ed. Keep the default session; do not `close` it or start new `--session` names without need.
+- Never pass `--profile`, `AGENT_BROWSER_PROFILE`, or `chrome-profile-clone` (copies launch with `--password-store=basic`, so cookies cannot decrypt).
+- Work in your own tab (`tab new`). Never navigate or close Ed's tabs.
+- "No running Chrome instance found": ask Ed to open Chrome. Isolated headless run: `--auto-connect false`.
 
 ## Compliant providers (HIPAA/SOC 2, GLM-5.3-Flash)
 
