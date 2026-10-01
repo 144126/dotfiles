@@ -17,8 +17,8 @@ if [ -f "$record_state/state" ]; then
   rm "$record_state/state"
 fi
 
-record_file="$HOME/Downloads/screen-$(date +%Y-%m-%d-%H-%M-%S).mp4"
-mkdir -p "$HOME/Downloads"
+record_file="$HOME/screen-rec/screen-$(date +%Y-%m-%d-%H-%M-%S).mp4"
+mkdir -p "$HOME/screen-rec"
 record_output=$(swaymsg -t get_outputs | jq -r '[.[] | select(.active)] | (map(select(.focused))[0] // .[0]).name')
 record_audio="$(pactl get-default-sink).monitor"
 wf-recorder -o "$record_output" --audio="$record_audio" -f "$record_file" > "$record_state/log" 2>&1 9>&- &
