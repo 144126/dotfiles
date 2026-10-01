@@ -31,7 +31,7 @@ set $menu combined-menu
 bindsym $mod+Return exec bash -ic f
 bindsym $mod+Shift+Return exec foot -e ~/.local/bin/depth-launch
 bindsym $mod+Shift+x kill
-bindsym $mod+Shift+q kill
+bindsym --no-repeat $mod+Shift+q exec ~/.local/bin/sway-screen-record-toggle.sh
 bindsym $mod+d exec $menu
 
 bindsym $mod+Shift+c reload
