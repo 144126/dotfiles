@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Drive the silent headless 1440fl Chrome on 9223. Starts it if needed.
+set -euo pipefail
+export TMPDIR="${TMPDIR:-$HOME/.cache/abtmp}"
+mkdir -p "$TMPDIR" /tmp/ab-1440fl
+if ! curl -sf --max-time 1 http://127.0.0.1:9223/json/version >/dev/null; then
+  nohup /usr/bin/google-chrome-stable \
+    --headless=new \
+    --user-data-dir="$HOME/.config/chrome-1440fl" \
+    --profile-directory=Default \
+    --remote-debugging-port=9223 \
+    --remote-debugging-address=127.0.0.1 \
+    --remote-allow-origins=* \
+    --no-first-run \
+    --disable-gpu \
+    about:blank >>/tmp/ab-1440fl/headless.log 2>&1 &
+  echo $! >/tmp/ab-1440fl/headless.pid
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -sf --max-time 1 http://127.0.0.1:9223/json/version >/dev/null && break
+    sleep 0.3
+  done
+fi
+exec agent-browser --session ab1440fl --cdp 9223 --no-pin-tab --headed false --auto-connect false "$@"

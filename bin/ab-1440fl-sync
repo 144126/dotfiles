@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Pull decrypted cookies from the visible 1440fl Chrome (port 9222) into the silent one (9223).
+# Visible Chrome must already be running with chrome-1440fl (debug port 9222).
+set -euo pipefail
+export TMPDIR="${TMPDIR:-$HOME/.cache/abtmp}"
+mkdir -p "$HOME/.config/chrome-1440fl" /tmp/ab-1440fl
+umask 077
+tmp=$(mktemp /tmp/ab-1440fl/ck.XXXXXX)
+agent-browser --session vis --cdp 9222 --no-pin-tab cookies get --json >"$tmp"
+python3 - "$tmp" <<'PY'
+import json, subprocess, sys
+from pathlib import Path
+raw = json.loads(Path(sys.argv[1]).read_text())
+cs = raw.get("data", {}).get("cookies") or raw.get("cookies") or []
+if not cs:
+    raise SystemExit("no cookies from visible chrome (is 9222 up?)")
+arr = []
+for c in cs:
+    o = {k: c[k] for k in ("name", "value", "domain", "path") if k in c}
+    for k in ("httpOnly", "secure", "sameSite", "expires"):
+        if k in c:
+            o[k] = c[k]
+    arr.append(o)
+out = Path.home() / ".config/chrome-1440fl/cookies.json"
+out.write_text(json.dumps(arr))
+out.chmod(0o600)
+ok = fail = 0
+for c in arr:
+    cmd = [
+        "agent-browser", "--session", "ab1440fl", "--cdp", "9223", "--no-pin-tab",
+        "cookies", "set", c["name"], c["value"],
+        "--domain", c["domain"], "--path", c.get("path") or "/",
+    ]
+    if c.get("httpOnly"):
+        cmd += ["--httpOnly"]
+    if c.get("secure"):
+        cmd += ["--secure"]
+    ss = c.get("sameSite")
+    if ss in ("Lax", "Strict", "None"):
+        cmd += ["--sameSite", ss]
+    exp = c.get("expires")
+    if isinstance(exp, (int, float)) and exp > 0:
+        cmd += ["--expires", str(int(exp))]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode == 0:
+        ok += 1
+    else:
+        fail += 1
+print(f"imported {ok} cookies, {fail} failed")
+PY
+rm -f "$tmp"
+echo "$HOME/.config/chrome-1440fl"

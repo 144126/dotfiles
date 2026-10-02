@@ -1,3 +1,11 @@
+## Project Configuration
+
+- **Language**: TypeScript
+- **Package Manager**: pnpm
+- **Add-ons**: prettier, eslint, vitest, playwright, tailwindcss, sveltekit-adapter
+
+---
+
 read ~/ed.md before a product, naming, or taste decision.
 read ~/me.md only on this machine, and only for personal webapp defaults or chrome profile rules.
 
@@ -41,13 +49,13 @@ This never overrides a safety check on a destructive or irreversible action, and
   - Keep the small words (the, a, is). No telegraphic or clipped phrases.
   - No filler, hedging, throat-clearing, or sales tone.
   - Keep numbers, code, commands, paths, error strings, and technical names exact.
-  - "eli9" = explain like i'm 9. Same facts, simpler words, still scannable. Not a wall.
 - Always `pnpm`, never npm or npx.
 - Always use `pipx` to install python stuff globally, never pip or pip3.
 - Portfolio: ed.apexlinks.org
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - Dump: dump.apexlinks.org — `~/i/dump`. Random temp things to share. Festus slides `/festus-preachers/slides`, contradictions `/festus-preachers/contradictions`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
+- **Video/audio link pasted** (YouTube, X, TikTok, IG, etc.): `cobalt <url> [out.mp4]` downloads it (local cobalt.tools, starts itself, yt-dlp fallback) and prints the path. `stt <file>` transcribes it with the Pi voice model (Phonon-2 on :8081). Default save: `~/Downloads`.
 - **Music generation**: use the `yue2` skill — YuE (https://github.com/multimodal-art-projection/YuE) on lightning.ai. Never another music model.
 - **Lightning.ai**: org `144126-org`, teamspace `default-project`. Key lives only in `~/.lightning/credentials.json` (`api_key` only). Never write it into a repo.
 - **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
@@ -107,11 +115,13 @@ If the user names a `*.plan.json` with no other context, read `~/.agents/skills/
 - `.env` is always gitignored. Never commit it.
 
 # Browser — local only (see ~/me.md)
+- Any site with Google login: sign in or sign up with Ed's `1440fl@gmail.com` Google account. No need to ask.
 - When a video/image is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
 
 # 1440fl
-- agent-browser: `ab-1440fl <url>`
-- chrome: `chrome-1440fl <url>`
+- Silent agent Chrome: `ab-1440fl <cmd>` (headless, port 9223, 1440fl cookies).
+- Visible Chrome: `chrome-1440fl <url>` (Default / 1440fl, debug 9222 always on).
+- After a new visible login: `ab-1440fl-sync`.
 
 # Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
 
@@ -127,3 +137,31 @@ Memory is OptMem: tool `~/.optmem/memo`, memories in `~/.optmem/memory`. It outl
 - **While working (mandatory)**: `~/.optmem/memo note "<1 line, max 280 chars>"` whenever you learn something new or something worth keeping happens. No redundant memories. If `note` asks for a compression, do it before your next action.
 - **Recalling**: `~/.optmem/memo recall <regex>` searches every memory. `~/.optmem/memo zoom <a-b>` opens a `#a-b` summary node into its two halves, down to the raw memories.
 - **Subagents skip all of the above.** A subagent must never run `memo`. When you spawn one, write: `You are a subagent. Don't run memo.`
+
+# Design principles (every file)
+
+From https://x.com/tvykruta/status/2105302045573959697 (tweet 13, verbatim rules). Constraints, not a checklist. When two conflict, pick the lowest future cost for this repo and say so in the commit. Invariants 10–12 are the hard form of these.
+
+- Separation of concerns: domain (services/<domain>/) · persistence (models.py, alembic/) · presentation (templates, static/) · routing (pocket/, app.py). Name the one concern of the file you edit.
+- Encapsulation: public contracts only; read another module's tables and caches through its functions.
+- Cohesion / coupling: one rule change touches one module.
+- DRY: grep before writing logic; one home per rule, threshold, format or schema fact. Do not abstract coincidental similarity.
+- KISS / YAGNI: simplest working shape; function over class; no speculative hooks, flags or frameworks.
+- Single responsibility: if you describe it with "and", split it. Names say intent; comments say why.
+- Depend on contracts: domain code takes and returns plain values; never imports Flask, request or templates.
+- Composition over inheritance · open/closed only where change has happened twice · Demeter (no a.b.c.d) · fail fast (validate at edges, never swallow errors) · optimize for deletion · boring tech.
+
+## Hard invariants (never violate)
+
+10. One owning module per domain — each business domain's logic (pricing, valuation, pedigree reading, sharing, imports, analytics…) lives in one module with its rules doc; everyone else calls it. Pricing: services/pricing/ + docs/PRICING_RULES.md. Consolidate a scattered domain before adding to it. Extend the domain's existing module; create a new one only when you can say why the old one cannot own it. A new rule goes in its domain's owner, not in the first feature that needs it; a function-level import to dodge a cycle means the logic is in the wrong module.
+
+11. Never duplicate logic — second use of existing logic: (1) move it to a shared module, (2) switch the original caller, tests green, no behaviour change, (3) then build the new use. First grep for the expression (the arithmetic, the format string, the threshold) and list every copy; the move switches them all or the commit names each one left and why. A new helper beside old copies is one more duplicate. The move keeps each caller's exact results (guards, rounding, clamps); any behaviour change is its own commit. Same for schemas (one fact, one column) and UX (one partial per repeated piece).
+
+12. No business logic in rendering — templates, JS, routes and view builders only display values; they never compute prices, rules or classifications. Arithmetic or rules on business data there is a bug; move it to the owning module. Who sees a value is decided in Python, not by a template if.
+
+## How to work
+
+Refactor first, then change: a behaviour-preserving refactor with tests green (plus an output dump for pricing-sized domains), then the change. Never both in one unverifiable diff.
+
+Gates, not promises. A prompted "never" alone does not protect the SoT; a rule that matters is enforced by CI or a hook.
+

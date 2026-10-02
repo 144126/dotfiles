@@ -40,13 +40,13 @@ Personal naming and scaffolding prefs, not work policy.
 
 ### Browser (local)
 
-- Never let agent-browser write its profile into `/tmp` (tmpfs). Use `TMPDIR=$HOME/.cache/abtmp`, then `agent-browser close --all` plus `rm -rf /tmp/agent-browser-profile-*` when finished.
-- Opening anything in chrome for Ed: always his default profile. Bare `google-chrome-stable <url/file>`, never another `--profile-directory` or `--user-data-dir`.
-- agent-browser drives Ed's real running Chrome (default profile, all logins). `~/.agent-browser/config.json` sets `autoConnect`, `pinTab`, `idleTimeout: "0"`; the toggle at `chrome://inspect/#remote-debugging` is on. Use plain `agent-browser <cmd>`, no flags.
-- Each new daemon connection makes Chrome show one "Allow" pop-up for Ed. Keep the default session; do not `close` it or start new `--session` names without need.
-- Never pass `--profile`, `AGENT_BROWSER_PROFILE`, or `chrome-profile-clone` (copies launch with `--password-store=basic`, so cookies cannot decrypt).
-- Never `tab new`: it opens in Chrome's last-used profile (e.g. Gold), not Default (1440fl). Use `open <url>` in the session's pinned tab. On `tab_gone`: `tab` to Ed's Gmail or X tab, `eval` an `<a id=abx target=_blank href=URL>`, `click '#abx'`, remove it, then `tab` to the new tab. Never navigate or close Ed's tabs.
-- "No running Chrome instance found": ask Ed to open Chrome. Isolated headless run: `--auto-connect false`.
+- Two Chromes. Visible = Ed looks at it (`chrome-1440fl`, Default / 1440fl, debug `127.0.0.1:9222`). Silent = agents drive it (`ab-1440fl`, `~/.config/chrome-1440fl`, debug `127.0.0.1:9223`, always headless). They cannot share one user-data-dir while both run.
+- Opening anything for Ed to see: `chrome-1440fl <url/file>` or bare `google-chrome-stable`. Never another `--profile-directory` or `--user-data-dir`.
+- Agents: `ab-1440fl <cmd>` or plain `agent-browser` (`config.json` is `headed: false`, `autoConnect: false`, `cdp: "9223"`). Never attach to the visible window unless Ed asks.
+- After Ed logs into a new site in the visible window: `ab-1440fl-sync` (CDP cookie export). Do not file-copy Cookies while Chrome is open — auth cookies get dropped. Never `--profile Default` / `chrome-profile-clone` (Chrome for Testing cannot decrypt 1440fl cookies).
+- Remote debugging stays on via `chrome-1440fl` (desktop file + `~/.local/bin/chrome-1440fl`). Restart Chrome once. No `chrome://inspect` Allow pop-up after that.
+- Never let agent-browser write a profile into `/tmp` (tmpfs). `TMPDIR=$HOME/.cache/abtmp`.
+- Never `tab new` on the visible Chrome (opens last-used profile, not 1440fl). Never `close` the visible session.
 
 ## Compliant providers (HIPAA/SOC 2, GLM-5.3-Flash)
 

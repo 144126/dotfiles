@@ -1,0 +1,13 @@
+[Unit]
+Description=Silent headless Chrome for agent-browser (1440fl cookies)
+After=network.target
+
+[Service]
+Type=simple
+Environment=TMPDIR=%h/.cache/abtmp
+ExecStart=/usr/bin/google-chrome-stable --headless=new --user-data-dir=%h/.config/chrome-1440fl --profile-directory=Default --remote-debugging-port=9223 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* --no-first-run --disable-gpu about:blank
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

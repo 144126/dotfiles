@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Ed's visible Chrome. Default / 1440fl. Remote debugging always on. No Allow pop-up.
+set -euo pipefail
+exec /usr/bin/google-chrome-stable \
+  --profile-directory=Default \
+  --remote-debugging-port=9222 \
+  --remote-debugging-address=127.0.0.1 \
+  --remote-allow-origins=* \
+  "$@"
