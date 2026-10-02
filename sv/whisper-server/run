@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+export PHONON_TOKEN=$(cat /home/ed/.config/jot-stt.token)
+exec chpst -u ed:ed /home/ed/i/144126/dotfiles/bin/phonon-server.py

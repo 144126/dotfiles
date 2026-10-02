@@ -1,0 +1,11 @@
+#!/bin/bash
+# stt <audio|video> — transcribe with the Pi voice model (Phonon-2 on :8081). 60s chunks. Text to stdout.
+set -e
+d=$(mktemp -d ~/.cache/stt.XXXX)
+trap 'rm -rf "$d"' EXIT
+ffmpeg -loglevel error -i "$1" -vn -ac 1 -ar 16000 -f segment -segment_time 60 "$d/%04d.wav"
+hdr=()
+if [ -f ~/.config/jot-stt.token ]; then
+	hdr=(-H "Authorization: Bearer $(cat ~/.config/jot-stt.token)")
+fi
+for f in "$d"/*.wav; do curl -s "${hdr[@]}" --data-binary @"$f" localhost:8081/; echo; done

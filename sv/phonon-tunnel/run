@@ -1,0 +1,3 @@
+#!/bin/sh
+exec 2>&1
+exec chpst -u ed:ed /home/ed/.local/bin/cloudflared tunnel --no-autoupdate run --token "$(cat /home/ed/.config/cloudflared-phonon.token)"
