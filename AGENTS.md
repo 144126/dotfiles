@@ -35,6 +35,7 @@ This never overrides a safety check on a destructive or irreversible action, and
 - This is `~/AGENTS.md`. Skills: `~/.agents/skills/*/SKILL.md` — always extremely minimal, executable content only. Commands: `~/.agents/commands/`.
 - **"dtjd" = don't think just do.** Skip analysis, plan, options, extra reading, and scope beyond the words. Edit, commit, push, answer in one line. Overrides effort level. Never overrides a safety check on a destructive command.
 - Unknown error that one attempt does not fix: search the net before acting further.
+- Before editing a repo, run `git status` and read `plan/*.plan.json`. Another agent may be mid-task there, and untracked files you overwrite cannot be restored by git.
 - Always clean up after tasks. Keep final outputs and needed source files; move unneeded task-created drafts and temporary files to Trash.
 - **Learn forward, every task.** Before you finish, check what you learned: something unexpected, a failure you fixed, a better way, a fact you had to dig out. Write it into the skill it belongs to, or into `~/AGENTS.md` if it is general. If no skill fits and it will come up again, make a new minimal skill. Write only the trap, the fix and the command, so the next agent starts where you stopped. Never write secrets: `~/.agents` is public.
 - Live `~/.config/sway/config` is its own file, not the repo copy. Edit both.
@@ -64,6 +65,7 @@ This never overrides a safety check on a destructive or irreversible action, and
 - **Music generation**: use the `yue2` skill — YuE (https://github.com/multimodal-art-projection/YuE) on lightning.ai. Never another music model.
 - **Lightning.ai**: org `144126-org`, teamspace `default-project`. Key lives only in `~/.lightning/credentials.json` (`api_key` only). Never write it into a repo.
 - **OpenRouter balance**: `/api/v1/key` `limit_remaining` is only that key's cap, not money. It said $3.37 while the account was $2.59 below zero. Real balance: `curl -s -H "Authorization: Bearer $OPENROUTER_API_KEY" https://openrouter.ai/api/v1/credits` (`total_credits - total_usage`).
+- **OpenRouter models**: discovery is public: `curl -s 'https://openrouter.ai/api/v1/models?output_modalities=text'` and `curl -s 'https://openrouter.ai/api/v1/videos/models'`. The video list is separate. Check its `supported_durations`, `supported_aspect_ratios`, and `supported_resolutions` before generating.
 - **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
 
 # Change log
