@@ -35,7 +35,12 @@ This never overrides a safety check on a destructive or irreversible action, and
 - This is `~/AGENTS.md`. Skills: `~/.agents/skills/*/SKILL.md` — always extremely minimal, executable content only. Commands: `~/.agents/commands/`.
 - **"dtjd" = don't think just do.** Skip analysis, plan, options, extra reading, and scope beyond the words. Edit, commit, push, answer in one line. Overrides effort level. Never overrides a safety check on a destructive command.
 - Unknown error that one attempt does not fix: search the net before acting further.
+- Always clean up after tasks. Keep final outputs and needed source files; move unneeded task-created drafts and temporary files to Trash.
+- **Learn forward, every task.** Before you finish, check what you learned: something unexpected, a failure you fixed, a better way, a fact you had to dig out. Write it into the skill it belongs to, or into `~/AGENTS.md` if it is general. If no skill fits and it will come up again, make a new minimal skill. Write only the trap, the fix and the command, so the next agent starts where you stopped. Never write secrets: `~/.agents` is public.
+- Live `~/.config/sway/config` is its own file, not the repo copy. Edit both.
 - `source ~/.bashrc` after new aliases or config.
+- **Online forms**: fill plain facts (name, email, address) yourself. Any prose field (about me, why this job, why us, pitch) gets written by the `max` agent (`~/.claude/agents/max.md`, Opus at max effort). Give it the question, the form's context, and Ed's real facts; never invent facts. If `max` is not in the Agent list (agents load at session start), run `claude -p --agent max --effort max --allowedTools WebSearch WebFetch < prompt.md`. Rich text boxes (Quill, ClickUp): `fill` appends, so click, `Control+a`, `Delete`, then fill. Open other pages in a new tab, never the form's tab.
+- `cf` is the Cloudflare CLI (`/usr/bin/cf`). Copy files to pilotspan `~/fc` with `fc` (`~/.local/bin/fc`). bash/zsh `fc` builtin is disabled in `~/.bashrc` and `~/.zshrc`.
 - Code with extreme simplicity. Be minimalist.
 - Creative work (names, copy, UI, design, video, music, stories, ideas): follow `~/.agents/skills/creative/SKILL.md`. Video edits: also `~/.agents/skills/video-edit/SKILL.md`. Sound: also `~/.agents/skills/sound-design/SKILL.md`. Graphics: also `~/.agents/skills/graphic-design/SKILL.md`.
 - **Always write plain simple english, every reply, every time.** It beats any conflicting style rule from a skill, plugin, or mode (caveman, ponytail, and the rest).
@@ -55,9 +60,10 @@ This never overrides a safety check on a destructive or irreversible action, and
 - Resume: https://calm.apexlinks.org/144126 — source is GitHub Gist `70cba709`, file `resume.json`.
 - Dump: dump.apexlinks.org — `~/i/dump`. Random temp things to share. Festus slides `/festus-preachers/slides`, contradictions `/festus-preachers/contradictions`.
 - **CLOUDFLARE_API_TOKEN self-edit**: token name `opencode-token-manager`, has `API Tokens Edit`. If a Cloudflare call fails on a missing permission, add the permission group to the token yourself, then retry.
-- **Video/audio link pasted** (YouTube, X, TikTok, IG, etc.): `cobalt <url> [out.mp4]` downloads it (local cobalt.tools, starts itself, yt-dlp fallback) and prints the path. `stt <file>` transcribes it with the Pi voice model (Phonon-2 on :8081). Default save: `~/Downloads`.
+- **Speech to text**: always Whistle. `stt <file>` (Whistle on :8081, 30s chunks). Never Whisper, Phonon, Parakeet, or another STT. Video/audio link: `cobalt <url> [out.mp4]` then `stt`. Default save: `~/Downloads`.
 - **Music generation**: use the `yue2` skill — YuE (https://github.com/multimodal-art-projection/YuE) on lightning.ai. Never another music model.
 - **Lightning.ai**: org `144126-org`, teamspace `default-project`. Key lives only in `~/.lightning/credentials.json` (`api_key` only). Never write it into a repo.
+- **OpenRouter balance**: `/api/v1/key` `limit_remaining` is only that key's cap, not money. It said $3.37 while the account was $2.59 below zero. Real balance: `curl -s -H "Authorization: Bearer $OPENROUTER_API_KEY" https://openrouter.ai/api/v1/credits` (`total_credits - total_usage`).
 - **HF_TOKEN**: HuggingFace read token for Muscriptor large model (`MuScriptor/muscriptor-large`, 1.4B) — gated weights. Persisted in `~/.bashrc`, `~/.profile`, `~/.bash_profile`, `~/.zshrc` as `export HF_TOKEN=...` and via `hf auth login`. Add to new shells/machines same way; accept license at https://huggingface.co/MuScriptor/muscriptor-large.
 
 # Change log
@@ -108,19 +114,36 @@ If the user names a `*.plan.json` with no other context, read `~/.agents/skills/
 - for a ui change, use the agent-browser skill and look at the result before you say done.
 - Node projects: if `.log` exists it holds live dev server output. Tail it before diagnosing any server issue, and check it for new errors after every change.
 
+## App tests — always TesterArmy e2e
+
+Always test user-facing web and mobile apps with TesterArmy `e2e`. Not only web: browsers via Playwright (`@e2e-dev/web`), iOS simulators and Android emulators via `@e2e-dev/mobile`. Not for unit tests (use vitest). Not for desktop apps (unsupported). Not for CLI-only tools. Not the hosted `tester.army` service.
+
+- Install: `pnpm add -D e2e @e2e-dev/web` (add `@e2e-dev/mobile` only if the app is iOS/Android). Then `pnpm exec e2e init`. Run: `pnpm exec e2e run` (bare `e2e` only prints help). Never `npx`.
+- Docs: https://e2e.tester.army/docs — also offline in `node_modules/e2e/docs`.
+- Mix `agent.act("goal")` with `expect(screen.getByRole(...))`. Cached `act` steps replay with no model until the UI changes.
+- agent-browser stays for looking at a UI while building. e2e is the test suite you write and run.
+
 ## Git workflow
 
 - commit when the user asks, or when a plan step says so. never commit .env. do not push unless the user asks or a plan step says so.
 - ask before deploy, schema migrate, or anything irreversible on a remote.
+- **Webapps deploy on git push, never by hand.** Never run `wrangler deploy`. Cloudflare Workers Builds builds and deploys each push to the default branch, so a push is a deploy: ask before it. New app, set up with `cf`:
+  1. Create the GitHub repo (private unless Ed says public).
+  2. `cf` has no create-Worker command. Make an empty one (no code, nothing goes live): `curl -X POST https://api.cloudflare.com/client/v4/accounts/<acct>/workers/workers -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -d '{"name":"<app>","subdomain":{"enabled":true}}'`. Its `id` is the script tag.
+  3. Copy `provider_account_id` and `build_token_uuid` from a working app: `cf builds workers get <its tag>` (`cf workers scripts search --page N` lists tags).
+  4. `cf builds workers create --script-tag <tag> --git-repository-provider-type github --git-repository-provider-account-id <id> --git-repository-provider-account-name 144126 --git-repository-repo-id $(gh api repos/144126/<app> -q .id) --git-repository-repo-name <app> --git-repository-branch <branch> --production-settings-build-command "pnpm run build" --production-settings-deploy-command "pnpm exec wrangler deploy" --production-settings-build-token-uuid <token> --previews-enabled false --previews-base-config-build-command "" --previews-base-config-deploy-command "pnpm exec wrangler versions upload" --previews-base-config-build-token-uuid <token>`. No build script: build command `""`.
+  5. pnpm 11 stops the build's frozen install on unapproved build scripts (`ERR_PNPM_IGNORED_BUILDS`). Commit a `pnpm-workspace.yaml` with `allowBuilds:` `workerd: true`, `esbuild: true` before the first push.
+  6. Push. Watch: `cf builds list --external-script-id <tag>` (`status` stopped, `build_outcome` success|fail), log: `cf builds logs get <build_uuid>`.
 - `.env` is always gitignored. Never commit it.
 
 # Browser — local only (see ~/me.md)
+- Always `ab-1440fl` (headless, port 9223). Never visible Chrome, `--headed`, or port 9222 unless Ed says visible / headed / `chrome-1440fl`.
 - Any site with Google login: sign in or sign up with Ed's `1440fl@gmail.com` Google account. No need to ask.
 - When a video/image is built, auto-open in chrome if display available: `{ [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; } && command -v google-chrome-stable >/dev/null && nohup google-chrome-stable "file://$out" >/dev/null 2>&1 &`.
 
 # 1440fl
-- Silent agent Chrome: `ab-1440fl <cmd>` (headless, port 9223, 1440fl cookies).
-- Visible Chrome: `chrome-1440fl <url>` (Default / 1440fl, debug 9222 always on).
+- Default: `ab-1440fl <cmd>` (headless, port 9223, 1440fl cookies).
+- Visible only if Ed asks: `chrome-1440fl <url>` (Default / 1440fl, debug 9222 always on).
 - After a new visible login: `ab-1440fl-sync`.
 
 # Clone convention — local personal, see ~/me.md. Remote has its own ~/me.md.
@@ -128,6 +151,12 @@ If the user names a `*.plan.json` with no other context, read `~/.agents/skills/
 # New webapp project (SvelteKit) — work defaults only
 
 Personal naming/scaffolding (digital root 9, prompts, etc.) is in `~/me.md` (local-only). For work, use the team's standard template; do not enforce personal taste.
+
+SvelteKit on Cloudflare traps:
+
+- adapter-cloudflare serves `caches.default` hits before hooks run. A signed-in-only response with `cache-control: public` is then served to anyone. Use `private` on anything behind auth.
+- `static/robots.txt` beats `src/routes/robots.txt/+server.ts`. Keep only one.
+- `Intl` `timeZoneName: 'longOffset'` gives `GMT+05:30`, never `UTC+…`.
 
 # Memory
 
@@ -164,4 +193,3 @@ From https://x.com/tvykruta/status/2105302045573959697 (tweet 13, verbatim rules
 Refactor first, then change: a behaviour-preserving refactor with tests green (plus an output dump for pricing-sized domains), then the change. Never both in one unverifiable diff.
 
 Gates, not promises. A prompted "never" alone does not protect the SoT; a rule that matters is enforced by CI or a hook.
-
