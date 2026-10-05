@@ -127,9 +127,9 @@ Always test user-facing web and mobile apps with TesterArmy `e2e`. Not only web:
 
 ## Git workflow
 
-- commit when the user asks, or when a plan step says so. never commit .env. do not push unless the user asks or a plan step says so.
-- ask before deploy, schema migrate, or anything irreversible on a remote.
-- **Webapps deploy on git push, never by hand.** Never run `wrangler deploy`. Cloudflare Workers Builds builds and deploys each push to the default branch, so a push is a deploy: ask before it. New app, set up with `cf`:
+- Commit and push completed changes without asking for approval. Normal git operations and deployments triggered by a push have standing approval. Never commit .env or unrelated changes.
+- Ask before destructive git operations, schema migrations, or other irreversible remote actions.
+- **Webapps deploy on git push, never by hand.** Never run `wrangler deploy`. Cloudflare Workers Builds builds and deploys each push to the default branch. New app, set up with `cf`:
   1. Create the GitHub repo (private unless Ed says public).
   2. `cf` has no create-Worker command. Make an empty one (no code, nothing goes live): `curl -X POST https://api.cloudflare.com/client/v4/accounts/<acct>/workers/workers -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -d '{"name":"<app>","subdomain":{"enabled":true}}'`. Its `id` is the script tag.
   3. Copy `provider_account_id` and `build_token_uuid` from a working app: `cf builds workers get <its tag>` (`cf workers scripts search --page N` lists tags).
