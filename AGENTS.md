@@ -39,6 +39,7 @@ Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period
 - Webapps deploy on push only. Never `wrangler deploy`. New Worker: GitHub repo (private) → `curl -X POST .../accounts/<acct>/workers/workers -d '{"name":"<app>","subdomain":{"enabled":true}}'` → copy ids from `cf builds workers get <tag>` → `cf builds workers create ...` (build `pnpm run build`, deploy `pnpm exec wrangler deploy`) → commit `pnpm-workspace.yaml` (`packages: ['.']`, `allowBuilds: {workerd: true, esbuild: true}`) → push → `cf builds list --external-script-id <tag>`.
 - Pages: `cf pages create ... --source-type github`, then push. Alias `<name>-xxxx.pages.dev`.
 - SvelteKit+CF: `private` cache on auth pages; one robots.txt; SPA fallback needs no root `404.html`.
+- Workers Builds fails `wrangler types --check` when local `.dev.vars` adds bindings: build script is `vite build` only.
 
 # Browser
 `ab-1440fl` (headless, 9223). Visible `chrome-1440fl` only if Ed asks, then `ab-1440fl-sync`. Google login: `1440fl@gmail.com`. Open built media in Chrome if a display exists.
