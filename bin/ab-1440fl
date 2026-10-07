@@ -20,4 +20,4 @@ if ! curl -sf --max-time 1 http://127.0.0.1:9223/json/version >/dev/null; then
     sleep 0.3
   done
 fi
-exec agent-browser --session ab1440fl --cdp 9223 --no-pin-tab --headed false --auto-connect false "$@"
+exec agent-browser --session ab1440fl --cdp 9223 --no-pin-tab --headed false --auto-connect false --idle-timeout 15m "$@"
