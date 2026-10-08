@@ -21,6 +21,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
 - `requirements.txt` — exact pinned deps.
 - `voice.ts` — the pi extension.
 - `say` — `say "text"` CLI (Paradee, piper fallback); `say --stop`.
+- `keybindings.json` — moves pi's own ctrl+s and ctrl+e actions aside so the voice keys raise no warnings.
 - `whistle-server.py`, `whisper-server.run` — the speech-to-text server used here (zip only).
 
 ## Steps
@@ -49,6 +50,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
    ```
    mkdir -p ~/.pi/agent/extensions ~/.local/bin
    cp voice.ts ~/.pi/agent/extensions/voice.ts
+   cp keybindings.json ~/.pi/agent/keybindings.json   # or merge its keys into an existing one
    cp say ~/.local/bin/say && chmod +x ~/.local/bin/say
    echo on > ~/.pi/speak
    ```
