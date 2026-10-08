@@ -22,8 +22,9 @@
         }
     },
     "clock": {
-        "format": "{:%a %d %b %H:%M}",
-        "tooltip-format": "{:%a %d %b %Y}"
+        "format": "{:%a %d %b %H:%M:%S}",
+        "tooltip-format": "{:%a %d %b %Y}",
+        "interval": 1
     },
     "cpu": {
         "format": "cpu {usage}%",
