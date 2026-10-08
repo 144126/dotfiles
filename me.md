@@ -26,7 +26,7 @@ Clone GitHub repos to `~/i/<org-or-user>/<repo-name>`.
 Personal naming and scaffolding prefs, not work policy.
 
 - New webapp project name: 2-4 characters, digital root 9 (sum letter positions a=1..z=26 plus digits, reduce to one digit). Never reuse.
-- Location `~/i/` by default, `~/i/me/` for personal. Create via `pnpm dlx sv create <name>` with SvelteKit minimal, TypeScript yes, add-ons prettier+eslint+vitest+playwright+sveltekit-adapter+experimental, etc. (full prompts in old AGENTS.md if needed).
+- Location `~/i/` by default, `~/i/me/` for personal. Create via `pnpm dlx sv create <name>` with SvelteKit minimal, TypeScript yes, add-ons prettier+eslint+playwright+sveltekit-adapter+experimental, etc. (full prompts in old AGENTS.md if needed).
 - Portfolio: ed.apexlinks.org — Resume: https://calm.apexlinks.org/144126
 
 ## Personal machine setup

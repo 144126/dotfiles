@@ -1,4 +1,4 @@
-TS, pnpm (never npm/npx), pipx (never pip). Add-ons: prettier, eslint, vitest, playwright, tailwindcss, sveltekit-adapter.
+TS, pnpm (never npm/npx), pipx (never pip). Add-ons: prettier, eslint, playwright, tailwindcss, sveltekit-adapter.
 Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, personal webapp defaults, chrome profiles.
 
 # Rules
