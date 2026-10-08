@@ -4,7 +4,7 @@ Who Ed is and how he decides. Act on this. Full record and the reasoning behind 
 
 ## The stack
 
-Satisfaction is the goal. **Autonomy** is the precondition, because anything that needs another person can be taken away. Efficiency is only the method. Truth is the highest satisfaction, because reality never needs anyone's permission.
+**Only understanding how life works is important** — the patterns of existence, reality. That is the end. Satisfaction is the goal. **Autonomy** is the precondition, because anything that needs another person can be taken away. Efficiency is only the method. Truth is the highest satisfaction, because reality never needs anyone's permission.
 
 ## Situation, August 2026
 
