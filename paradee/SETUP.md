@@ -10,7 +10,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
 ## Keys in pi
 
 - `ctrl+e` voice call: talk any time, ~1 s of quiet sends it, talking over pi cuts it off.
-- `ctrl+r` dictate a message; press again to send it (text already typed goes first).
+- `ctrl+r` dictate a message; `ctrl+r` again sends it (text already typed goes first), `ctrl+alt+r` puts it in the editor instead.
 - `ctrl+s` stop pi talking; when quiet, read aloud the part of the last reply after `|||`; in a call, mute your mic.
 - `/speak on|off` speak replies outside calls.
 
@@ -21,7 +21,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
 - `requirements.txt` — exact pinned deps.
 - `voice.ts` — the pi extension.
 - `say` — `say "text"` CLI (Paradee, piper fallback); `say --stop`.
-- `keybindings.json` — moves pi's own ctrl+s and ctrl+e actions aside so the voice keys raise no warnings.
+- `keybindings.json` — moves pi's own ctrl+s, ctrl+e and ctrl+alt+r actions aside so the voice keys raise no warnings.
 - `whistle-server.py`, `whisper-server.run` — the speech-to-text server used here (zip only).
 
 ## Steps

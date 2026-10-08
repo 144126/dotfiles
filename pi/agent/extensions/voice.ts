@@ -1,5 +1,5 @@
 // voice — pi speaks its replies as they stream (Paradee, ~/i/paradee/voice.py) and takes voice calls.
-// ctrl+e: voice call; talk any time, talking over pi cuts it off. ctrl+r: dictate; press again to send.
+// ctrl+e: voice call; talk any time, talking over pi cuts it off. ctrl+r: dictate; ctrl+r again sends it, ctrl+alt+r puts it in the editor.
 // ctrl+s: stop pi talking; when quiet, read the part after ||| aloud; in a call, mute your mic.
 // /speak on|off toggles speaking replies outside calls.
 
@@ -26,6 +26,7 @@ let silenced = false;
 let streaming = false;
 let call: net.Socket | null = null;
 let rec: net.Socket | null = null;
+let rec_send = false;
 let muted = false;
 
 function send(msg: string): Promise<string | null> {
@@ -204,10 +205,11 @@ async function toggle_call(ctx: ExtensionContext) {
 	});
 }
 
-async function dictate(ctx: ExtensionContext) {
+async function dictate(ctx: ExtensionContext, send: boolean) {
 	ui = ctx;
 	if (call) return ctx.ui.notify("Dictation is off during a voice call", "warning");
 	if (rec) {
+		rec_send = send;
 		rec.write("stop\n");
 		return show("voice: transcribing");
 	}
@@ -217,7 +219,7 @@ async function dictate(ctx: ExtensionContext) {
 	hush();
 	const c = net.connect(SOCK, () => c.write("rec\n"));
 	rec = c;
-	show("voice: recording, ctrl+r to send");
+	show("voice: recording, ctrl+r sends, ctrl+alt+r to editor");
 	let out = "";
 	c.setEncoding("utf8");
 	c.on("data", (d) => (out += d));
@@ -227,8 +229,9 @@ async function dictate(ctx: ExtensionContext) {
 		rec = null;
 		show();
 		if (out.startsWith("text ")) {
-			deliver(`${ctx.ui.getEditorText().trim()} ${out.slice(5).trim()}`.trim());
-			ctx.ui.setEditorText("");
+			const text = `${ctx.ui.getEditorText().trim()} ${out.slice(5).trim()}`.trim();
+			ctx.ui.setEditorText(rec_send ? "" : text);
+			if (rec_send) deliver(text);
 		} else if (out.startsWith("error ")) ctx.ui.notify(out.slice(6).trim(), "error");
 		else ctx.ui.notify("No speech heard", "warning");
 	});
@@ -302,7 +305,12 @@ export default function voice(pi: ExtensionAPI) {
 
 	pi.registerShortcut("ctrl+r", {
 		description: "Dictate a message; press again to send it",
-		handler: async (ctx) => dictate(ctx),
+		handler: async (ctx) => dictate(ctx, true),
+	});
+
+	pi.registerShortcut("ctrl+alt+r", {
+		description: "Dictate; press to put the words in the editor without sending",
+		handler: async (ctx) => dictate(ctx, false),
 	});
 
 	pi.registerShortcut("ctrl+s", {
@@ -317,7 +325,7 @@ export default function voice(pi: ExtensionAPI) {
 
 	pi.registerCommand("voice-record", {
 		description: "Dictate a message (ctrl+r)",
-		handler: async (_args, ctx) => dictate(ctx),
+		handler: async (_args, ctx) => dictate(ctx, true),
 	});
 
 	pi.registerCommand("speak", {

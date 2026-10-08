@@ -1,5 +1,5 @@
 {
-  "app.session.rename": "ctrl+alt+r",
+  "app.session.rename": "ctrl+alt+n",
   "app.session.toggleSort": "ctrl+alt+s",
   "app.models.save": "ctrl+alt+s",
   "tui.editor.cursorLineEnd": ["end", "ctrl+end"]
