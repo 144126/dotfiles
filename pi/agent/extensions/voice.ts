@@ -1,5 +1,5 @@
 // voice — pi speaks its replies as they stream (Paradee, ~/i/paradee/voice.py) and takes voice calls.
-// ctrl+e: voice call; talk any time, talking over pi cuts it off. ctrl+r: dictate into the editor.
+// ctrl+e: voice call; talk any time, talking over pi cuts it off. ctrl+r: dictate; press again to send.
 // ctrl+s: stop pi talking; when quiet, read the part after ||| aloud; in a call, mute your mic.
 // /speak on|off toggles speaking replies outside calls.
 
@@ -147,6 +147,12 @@ function show(text?: string) {
 	ui?.ui.setStatus("voice", text);
 }
 
+// while pi is busy, a plain send fails; steer queues it into the run
+function deliver(text: string) {
+	if (ui?.isIdle()) api.sendUserMessage(text);
+	else api.sendUserMessage(text, { deliverAs: "steer" });
+}
+
 function on_event(line: string) {
 	const i = line.indexOf(" ");
 	const kind = i === -1 ? line : line.slice(0, i);
@@ -161,10 +167,7 @@ function on_event(line: string) {
 	if (kind === "error") ui?.ui.notify(arg, "error");
 	// noise, not words: let pi carry on talking
 	if (kind === "drop") silenced = false;
-	if (kind === "text" && ui) {
-		if (ui.isIdle()) api.sendUserMessage(arg);
-		else api.sendUserMessage(arg, { deliverAs: "steer" });
-	}
+	if (kind === "text") deliver(arg);
 	show(muted ? "voice: muted" : "voice: listening");
 }
 
@@ -214,7 +217,7 @@ async function dictate(ctx: ExtensionContext) {
 	hush();
 	const c = net.connect(SOCK, () => c.write("rec\n"));
 	rec = c;
-	show("voice: recording, ctrl+r to stop");
+	show("voice: recording, ctrl+r to send");
 	let out = "";
 	c.setEncoding("utf8");
 	c.on("data", (d) => (out += d));
@@ -223,8 +226,10 @@ async function dictate(ctx: ExtensionContext) {
 		if (rec !== c) return;
 		rec = null;
 		show();
-		if (out.startsWith("text ")) ctx.ui.setEditorText(`${ctx.ui.getEditorText().trim()} ${out.slice(5).trim()}`.trim());
-		else if (out.startsWith("error ")) ctx.ui.notify(out.slice(6).trim(), "error");
+		if (out.startsWith("text ")) {
+			deliver(`${ctx.ui.getEditorText().trim()} ${out.slice(5).trim()}`.trim());
+			ctx.ui.setEditorText("");
+		} else if (out.startsWith("error ")) ctx.ui.notify(out.slice(6).trim(), "error");
 		else ctx.ui.notify("No speech heard", "warning");
 	});
 }
@@ -296,7 +301,7 @@ export default function voice(pi: ExtensionAPI) {
 	});
 
 	pi.registerShortcut("ctrl+r", {
-		description: "Dictate into the editor; press again to stop",
+		description: "Dictate a message; press again to send it",
 		handler: async (ctx) => dictate(ctx),
 	});
 
@@ -311,7 +316,7 @@ export default function voice(pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("voice-record", {
-		description: "Dictate into the editor (ctrl+r)",
+		description: "Dictate a message (ctrl+r)",
 		handler: async (_args, ctx) => dictate(ctx),
 	});
 

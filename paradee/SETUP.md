@@ -10,7 +10,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
 ## Keys in pi
 
 - `ctrl+e` voice call: talk any time, ~1 s of quiet sends it, talking over pi cuts it off.
-- `ctrl+r` dictate into the editor; press again to stop.
+- `ctrl+r` dictate a message; press again to send it (text already typed goes first).
 - `ctrl+s` stop pi talking; when quiet, read aloud the part of the last reply after `|||`; in a call, mute your mic.
 - `/speak on|off` speak replies outside calls.
 
