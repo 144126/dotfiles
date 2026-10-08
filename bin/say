@@ -1,25 +1,14 @@
 #!/bin/bash
-# say "text" — Freya Adam, no post atempo, exit after first success
+# say "text" — Paradee 8M (local Kokoro distill), piper fallback
 if [ "$1" = "--stop" ]; then pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
 force=0
 if [ "$1" = "--force" ]; then force=1; shift; fi
 [ "$force" = 0 ] && [ "$(cat /home/ed/.pi/speak 2>/dev/null)" = off ] && exit 0
 text="${*:-$(cat)}"; [ -z "$text" ] && exit 0
-if [ -z "$FREYA_API_KEY" ]; then
-  FREYA_API_KEY="$(grep -m1 '^export FREYA_API_KEY=' /home/ed/.bashrc | sed -E 's/^export FREYA_API_KEY=//; s/^["'\'']//; s/["'\'']$//')"
+wav="/tmp/pi-tts-$$.wav"
+if ! HF_HUB_OFFLINE=1 /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/say.py "$wav" <<< "$text" 2>/dev/null; then
+  cd /home/ed/i/piper 2>/dev/null || exit 1
+  .venv/bin/python -m piper -m en_US-lessac-medium.onnx -f "$wav" <<< "$text" 2>/dev/null
 fi
-wav="/tmp/pi-tts-$$.mp3"
-if [ -n "$FREYA_API_KEY" ]; then
-  voice="${FREYA_TTS_VOICE:-adam}"
-  model="${FREYA_TTS_MODEL:-tts-1}"
-  case "$voice" in eve|adam) host=https://playground.freyavoice.ai/v1/audio/speech ;; *) host=https://tts.freyavoice.ai/v1/audio/speech ;; esac
-  jq -n --arg t "$text" --arg v "$voice" --arg m "$model" '{model:$m,input:$t,voice:$v}' | curl -s -m 60 -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36" "$host" -H "Authorization: Bearer $FREYA_API_KEY" -H "Content-Type: application/json" -d @- -o "$wav" 2>/dev/null
-  if [ -s "$wav" ] && [ $(wc -c < "$wav") -gt 1000 ] && ! head -c 1 "$wav" | grep -q "{"; then
-    ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null || paplay "$wav" 2>/dev/null || aplay "$wav" 2>/dev/null
-    exit 0
-  fi
-fi
-# only piper if freya failed
-cd ~/i/piper 2>/dev/null || cd /home/ed/i/piper 2>/dev/null || exit 1
-wav="/tmp/pi-tts-$$.wav"; .venv/bin/python -m piper -m en_US-lessac-medium.onnx -f "$wav" <<< "$text" 2>/dev/null
 paplay "$wav" 2>/dev/null || ffplay -nodisp -autoexit -loglevel quiet "$wav" 2>/dev/null || aplay "$wav" 2>/dev/null
+rm -f "$wav"
