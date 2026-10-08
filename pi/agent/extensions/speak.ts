@@ -83,7 +83,7 @@ function speakNew(full: string, done: boolean) {
 	if (open !== -1) raw = raw.slice(0, open);
 	let end = done ? raw.length : -1;
 	if (!done) {
-		const re = /[.!?:;](?=\s)|\n/g;
+		const re = /[.!?…](?=\s)|\n/g;
 		re.lastIndex = spokenTo;
 		const m = mask(raw);
 		for (let x; (x = re.exec(m)); ) end = x.index + 1;
