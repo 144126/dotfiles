@@ -1,6 +1,6 @@
 #!/bin/bash
 # say "text" — Paradee 8M (local Kokoro distill), piper fallback
-if [ "$1" = "--stop" ]; then pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
+if [ "$1" = "--stop" ]; then /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/say.py --stop; pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
 force=0
 if [ "$1" = "--force" ]; then force=1; shift; fi
 [ "$force" = 0 ] && [ "$(cat /home/ed/.pi/speak 2>/dev/null)" = off ] && exit 0
