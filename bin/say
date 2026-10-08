@@ -1,12 +1,12 @@
 #!/bin/bash
 # say "text" — Paradee 8M (local Kokoro distill), piper fallback
-if [ "$1" = "--stop" ]; then /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/say.py --stop; pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
+if [ "$1" = "--stop" ]; then /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/voice.py --stop; pkill -f "pi-tts-" 2>/dev/null; pkill -x paplay 2>/dev/null; pkill -x ffplay 2>/dev/null; pkill -x mpv 2>/dev/null; exit 0; fi
 force=0
 if [ "$1" = "--force" ]; then force=1; shift; fi
 [ "$force" = 0 ] && [ "$(cat /home/ed/.pi/speak 2>/dev/null)" = off ] && exit 0
 text="${*:-$(cat)}"; [ -z "$text" ] && exit 0
 wav="/tmp/pi-tts-$$.wav"
-if ! HF_HUB_OFFLINE=1 /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/say.py "$wav" <<< "$text" 2>/dev/null; then
+if ! HF_HUB_OFFLINE=1 /home/ed/i/paradee/.venv/bin/python /home/ed/i/paradee/voice.py "$wav" <<< "$text" 2>/dev/null; then
   cd /home/ed/i/piper 2>/dev/null || exit 1
   .venv/bin/python -m piper -m en_US-lessac-medium.onnx -f "$wav" <<< "$text" 2>/dev/null
 fi
