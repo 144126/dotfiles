@@ -32,6 +32,7 @@ Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period
 - No comments except non-obvious why. No single-use vars. Extreme simplicity.
 - One owner module per domain; grep before writing, never duplicate; no business logic in templates/routes. Refactor first, then change.
 - Dev server only if none running. Tail `.log` first. UI change: look with agent-browser.
+- Don't write unit or integration tests unless Ed asks. Agent tests just restate the code: no gain, more time and tokens (DeepSWE, x.com/kunchenguid/status/2108030810691629403).
 - App tests: TesterArmy `e2e` (`pnpm add -D e2e @e2e-dev/web`, `pnpm exec e2e init`, `pnpm exec e2e run`). Docs `node_modules/e2e/docs`.
 
 # Git & deploy
