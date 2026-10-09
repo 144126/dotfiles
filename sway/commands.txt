@@ -5,3 +5,4 @@ Files:thunar
 Wifi:dmenu-wifi
 Launcher:combined-menu
 Reload Sway:swaymsg reload
+Parrot:foot -e ssh user@192.168.64.3
