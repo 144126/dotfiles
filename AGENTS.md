@@ -50,7 +50,7 @@ In the first brief, write: `You are a subagent. Don't run memo.` Keep the elder'
 - Music: only `yue2` skill. Lightning: org `gold144216-org` (user gold144216, scoped `sk-lit` key; credentials.json holds only `api_key`), teamspace `default-project`, key only in `~/.lightning/credentials.json`; old 144126-org creds in `~/.lightning/*.144126-org.bak`.
 - OpenRouter real balance: `/api/v1/credits` (`total_credits - total_usage`), not `/key`. Models: `/api/v1/models?output_modalities=text`, `/api/v1/videos/models` (check durations/ratios/resolutions).
 - `HF_TOKEN` in shell rc files for `MuScriptor/muscriptor-large`.
-- `orc` = Opus 5.5 max orchestrating Haiku 5.5 workers (`~/.claude/orc.md`, agents `worker` + `Explore`). On Pro, workers start only when Ed's prompt asks ("use workers") or names `worker`/`Explore`. Traps: a subagent with no `effort` inherits max; `CLAUDE_CODE_EFFORT_LEVEL=max` forces max on every worker; built-in Explore ignores `CLAUDE_CODE_SUBAGENT_MODEL`. Why: `~/search/opus55-haiku55-orchestration-root.md`.
+- `orc` = Opus 5.5 max orchestrating Haiku 5.5 workers (`~/.claude/orc.md`, agents `worker` + `Explore`). Claude's default for every task: `# Orchestrate` in `~/.claude/CLAUDE.md`. Traps: a subagent with no `effort` inherits max; `CLAUDE_CODE_EFFORT_LEVEL=max` forces max on every worker; built-in Explore ignores `CLAUDE_CODE_SUBAGENT_MODEL`. Why: `~/search/opus55-haiku55-orchestration-root.md`.
 
 # Commits
 Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period>`, blank line, body at 72 (what+why, `- ` bullets), trailers last. Body required for breaking, security, migration, revert.
