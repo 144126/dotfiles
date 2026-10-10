@@ -75,3 +75,4 @@ Google Cloud console (OAuth clients, redirect URIs) is always the 1440ir profile
 
 # Memory
 Start: `~/.optmem/memo wake`. Note: `memo note "<≤280 chars>"`. Recall: `memo recall <regex>`. Never edit `~/.optmem/memory`. Subagents: "You are a subagent. Don't run memo."
+2h complete silence/day. After every `memo wake`, run `silence`. If it exits 1 (missing file, or date ≠ today), end every reply with: 2h silence done today? If Ed says done/yes, run `silence done` and stop asking that calendar day. Subagents skip this.

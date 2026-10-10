@@ -1,0 +1,20 @@
+#!/bin/sh
+# silence: 2h quiet/day. file is YYYY-MM-DD iff done today.
+f="${XDG_STATE_HOME:-$HOME/.local/state}/silence"
+today=$(date +%F)
+mkdir -p "$(dirname "$f")"
+case "${1:-}" in
+  done)
+    printf '%s\n' "$today" > "$f"
+    echo "done $today"
+    ;;
+  *)
+    d=$(cat "$f" 2>/dev/null || true)
+    if [ "$d" = "$today" ]; then
+      echo "done $today"
+      exit 0
+    fi
+    echo "not done"
+    exit 1
+    ;;
+esac
