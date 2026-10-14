@@ -1,5 +1,0 @@
-#!/bin/sh
-# cf: c3+f6=9 — copy file(s) to pilotspan ~/fc
-set -e
-[ $# -eq 0 ] && { echo "usage: cf <file> [...]"; exit 1; }
-rsync -azW -- "$@" pilotspan-dev-workspace:~/fc/

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec tmux -L depth -f ~/.tmux-depth.conf new -A -s depth

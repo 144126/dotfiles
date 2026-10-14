@@ -4,7 +4,7 @@ Public configs to replicate sway, waybar, app launcher, foot, tmux, bluetooth an
 
 ## What's in here (all symlinked, no copy)
 
-- `sway/` → `~/.config/sway/` — `config` (Mod4, `swaybar_command waybar`, `set $menu combined-menu`, `Mod4+d`, pip-remember, clip-multi), `commands.txt`, `clip-multi.sh`, `toggle-display.sh`, `status.sh`, `extend.sh`, `pip-remember.py`
+- `sway/` → `~/.config/sway/` — `config` (Mod4, `swaybar_command waybar`, `set $menu combined-menu`, `Mod4+d`, clip-multi), `commands.txt`, `clip-multi.sh`, `toggle-display.sh`, `status.sh`, `extend.sh`
 - `waybar/` → `~/.config/waybar/` — `config.jsonc` ( `sway/workspaces` left, `tray | custom/display | custom/speed | custom/data | network | cpu | memory | temperature | disk | battery | custom/gemini | clock` right, height 24), `style.css` (#323232), `display-mode.sh`, `speed.sh`
 - `mako/` → `~/.config/mako/` — `config` (top-right, border, `on-button-left` focus)
 - `foot/` → `~/.config/foot/` — `foot.ini` (OSC8 underline, `launch=xdg-open`)
@@ -19,11 +19,11 @@ All originals are `ln -sf ~/i/144126/dotfiles/...` so editing `~/.config/sway/co
 ## Packages to install on the new laptop (Void Linux)
 
 ```bash
-xbps-install -S sway Waybar swaybg autotiling python3-i3ipc \
+xbps-install -S sway Waybar swaybg \
   wmenu mako foot foot-terminfo \
   wl-clipboard cliphist grim slurp flameshot wl-mirror \
   light playerctl jq CopyQ \
-  blueman bluez libspa-bluetooth pipewire wireplumber \
+  bluez libspa-bluetooth pipewire wireplumber \
   jq playerctl light
 ```
 
@@ -37,18 +37,18 @@ Wallpaper: `~/pics/dreamy_nostalgic_720p.png` (used in `sway/config` `output "*"
 
 ## Bluetooth
 
-Needed for `blueman-applet` in sway (`exec blueman-applet`) and pipewire audio:
+Needed for pipewire bluetooth audio:
 
-- Packages: `bluez`, `blueman`, `libspa-bluetooth` (pipewire bluetooth plugin), `pipewire`, `wireplumber`
+- Packages: `bluez`, `libspa-bluetooth` (pipewire bluetooth plugin), `pipewire`, `wireplumber`
 - Services (runit, Void):
   ```bash
   sudo ln -s /etc/sv/bluetoothd /var/service/      # bluetooth daemon
   sudo ln -s /etc/sv/dbus /var/service/            # if not already
   # pipewire is user service, sway does `exec pipewire` via config, plus `wireplumber`
   ```
-- No custom `~/.config/blueman` needed; `libspa-bluetooth` + `blueman-applet` + `waybar` tray gives the icon. `bluetooth/main.conf` in repo is the default `/etc/bluetooth/main.conf` for reference.
+- `bluetooth/main.conf` in repo is the default `/etc/bluetooth/main.conf` for reference.
 
-Also in sway: `exec blueman-applet`, `exec CopyQ`, `exec wl-paste --watch cliphist store`, `exec mako`.
+Also in sway: `exec CopyQ`, `exec wl-paste --watch cliphist store`, `exec mako`.
 
 ## Replicate on new laptop
 
@@ -61,7 +61,6 @@ ln -sf ~/i/144126/dotfiles/sway/clip-multi.sh ~/.config/sway/clip-multi.sh
 ln -sf ~/i/144126/dotfiles/sway/toggle-display.sh ~/.config/sway/toggle-display.sh
 ln -sf ~/i/144126/dotfiles/sway/status.sh ~/.config/sway/status.sh
 ln -sf ~/i/144126/dotfiles/sway/extend.sh ~/.config/sway/extend.sh
-ln -sf ~/i/144126/dotfiles/sway/pip-remember.py ~/.config/sway/pip-remember.py
 ln -sf ~/i/144126/dotfiles/waybar/config.jsonc ~/.config/waybar/config.jsonc
 ln -sf ~/i/144126/dotfiles/waybar/style.css ~/.config/waybar/style.css
 ln -sf ~/i/144126/dotfiles/waybar/display-mode.sh ~/.config/waybar/display-mode.sh

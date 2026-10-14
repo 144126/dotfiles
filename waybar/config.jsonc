@@ -4,7 +4,7 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/scale", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
     "custom/telegram": {
         "format": " tg ",
         "tooltip-format": "Open Telegram",
@@ -71,13 +71,6 @@
         "interval": 5,
         "format": " {} ",
         "signal": 2
-    },
-    "custom/scale": {
-        "exec": "~/.config/waybar/scale.sh",
-        "return-type": "json",
-        "interval": 5,
-        "format": " {} ",
-        "signal": 3
     },
     "custom/speed": {
         "exec": "~/.config/waybar/speed.sh",

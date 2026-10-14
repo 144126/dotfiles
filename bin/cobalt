@@ -1,0 +1,18 @@
+#!/bin/bash
+# cobalt <url> [out.mp4] — download via local cobalt (~/i/imput/cobalt/api :9000), yt-dlp fallback. Prints file path.
+set -e
+url=$1
+out=${2:-$HOME/Downloads/$(date +%s).mp4}
+[ -n "$url" ] || { echo "usage: cobalt <url> [out.mp4]" >&2; exit 1; }
+if ! curl -s -m2 localhost:9000/ >/dev/null; then
+  (cd ~/i/imput/cobalt/api && setsid -f pnpm start >~/.cache/cobalt.log 2>&1 </dev/null)
+  for _ in $(seq 20); do curl -s -m1 localhost:9000/ >/dev/null && break; sleep 0.5; done
+fi
+tunnel=$(curl -s -X POST localhost:9000/ -H "Accept: application/json" -H "Content-Type: application/json" \
+  -d "{\"url\":\"$url\",\"videoQuality\":\"720\",\"youtubeVideoCodec\":\"h264\"}" | jq -r '.url // empty')
+[ -n "$tunnel" ] && curl -sL -o "$out" "$tunnel" || true
+if [ ! -s "$out" ]; then
+  echo "cobalt failed, using yt-dlp" >&2
+  yt-dlp -q --remote-components ejs:github -f "bv*[height<=720]+ba/best" --merge-output-format mp4 -o "$out" "$url" >&2
+fi
+echo "$out"

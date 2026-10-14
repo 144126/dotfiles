@@ -1,0 +1,6 @@
+#!/bin/sh
+# start user pipewire on this session; kill leftovers from a previous sway
+pkill -x wireplumber
+pkill -x pipewire
+sleep 0.2
+exec pipewire

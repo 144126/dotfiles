@@ -1,4 +1,6 @@
 #!/bin/sh
 exec 2>&1
-export PHONON_TOKEN=$(cat /home/ed/.config/jot-stt.token)
-exec chpst -u ed:ed /home/ed/i/144126/dotfiles/bin/phonon-server.py
+export WHISTLE_TOKEN=$(cat /home/ed/.config/jot-stt.token)
+export NEEDLE_TELEMETRY=0
+export DO_NOT_TRACK=1
+exec chpst -u ed:ed /home/ed/i/144126/dotfiles/bin/whistle-server.py

@@ -7,6 +7,7 @@ D="${XDG_RUNTIME_DIR:-/tmp}/voice"
 URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
 GRACE_MS="${PI_VOICE_STOP_GRACE_MS:-1500}"
 LOG="$D/log"
+TOKEN=~/.config/jot-stt.token
 mkdir -p "$D"
 
 log() { echo "[$(date -Iseconds)] $*" >> "$LOG"; }
@@ -140,8 +141,10 @@ rm -rf "$stk"
 
 if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
 # the server handles one request at a time, so queued jobs finish and paste in the order they stopped
+auth=()
+[ -f "$TOKEN" ] && auth=(-H "Authorization: Bearer $(cat "$TOKEN")")
 for try in 1 2 3; do
-  text=$(curl -sSf -m 1620 --data-binary @"$job" "$URL" 2>>"$LOG") && break
+  text=$(curl -sSf -m 1620 "${auth[@]}" --data-binary @"$job" "$URL" 2>>"$LOG") && break
   if [ $try = 3 ]; then
     keep=~/voice-failed/$(date +%F-%H%M%S).wav
     mkdir -p ~/voice-failed; mv "$job" "$keep"
@@ -153,6 +156,7 @@ text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 [ -z "$text" ] && { notify "no speech detected"; exit; }
 
 # trailing space so back-to-back dictations don't glue words together
+old=$(wl-paste -n -t text 2>/dev/null) && had_text=1
 printf '%s ' "$text" | wl-copy
 sleep 0.2
 app=$(swaymsg -t get_tree | jq -r '.. | select(.focused? == true) | .app_id // empty')
@@ -161,4 +165,6 @@ case "$app" in
 foot*) wtype -M ctrl -M shift -k v -m shift -m ctrl ;;
 *) wtype -M ctrl -k v -m ctrl ;;
 esac
+sleep 0.3
+[ -n "$had_text" ] && printf %s "$old" | wl-copy
 notify "${text:0:80}"

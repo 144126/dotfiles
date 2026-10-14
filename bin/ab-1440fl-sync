@@ -1,52 +1,58 @@
 #!/usr/bin/env bash
-# Pull decrypted cookies from the visible 1440fl Chrome (port 9222) into the silent one (9223).
-# Visible Chrome must already be running with chrome-1440fl (debug port 9222).
 set -euo pipefail
-export TMPDIR="${TMPDIR:-$HOME/.cache/abtmp}"
-mkdir -p "$HOME/.config/chrome-1440fl" /tmp/ab-1440fl
 umask 077
-tmp=$(mktemp /tmp/ab-1440fl/ck.XXXXXX)
-agent-browser --session vis --cdp 9222 --no-pin-tab cookies get --json >"$tmp"
-python3 - "$tmp" <<'PY'
-import json, subprocess, sys
-from pathlib import Path
-raw = json.loads(Path(sys.argv[1]).read_text())
-cs = raw.get("data", {}).get("cookies") or raw.get("cookies") or []
-if not cs:
-    raise SystemExit("no cookies from visible chrome (is 9222 up?)")
-arr = []
-for c in cs:
-    o = {k: c[k] for k in ("name", "value", "domain", "path") if k in c}
-    for k in ("httpOnly", "secure", "sameSite", "expires"):
-        if k in c:
-            o[k] = c[k]
-    arr.append(o)
-out = Path.home() / ".config/chrome-1440fl/cookies.json"
-out.write_text(json.dumps(arr))
-out.chmod(0o600)
-ok = fail = 0
-for c in arr:
-    cmd = [
-        "agent-browser", "--session", "ab1440fl", "--cdp", "9223", "--no-pin-tab",
-        "cookies", "set", c["name"], c["value"],
-        "--domain", c["domain"], "--path", c.get("path") or "/",
-    ]
-    if c.get("httpOnly"):
-        cmd += ["--httpOnly"]
-    if c.get("secure"):
-        cmd += ["--secure"]
-    ss = c.get("sameSite")
-    if ss in ("Lax", "Strict", "None"):
-        cmd += ["--sameSite", ss]
-    exp = c.get("expires")
-    if isinstance(exp, (int, float)) and exp > 0:
-        cmd += ["--expires", str(int(exp))]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode == 0:
-        ok += 1
-    else:
-        fail += 1
-print(f"imported {ok} cookies, {fail} failed")
-PY
-rm -f "$tmp"
-echo "$HOME/.config/chrome-1440fl"
+ab-1440fl get url >/dev/null
+exec node --input-type=module <<'JS'
+import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
+
+async function cdp_call(url, method, params = {}) {
+  const socket = new WebSocket(url);
+  let timer;
+  try {
+    return await new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(`${method} timed out.`)), 25000);
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify({ id: 1, method, params }));
+      }, { once: true });
+      socket.addEventListener('message', ({ data }) => {
+        const response = JSON.parse(data);
+        if (response.id !== 1) return;
+        if (response.error) reject(new Error(`${method} failed.`));
+        else resolve(response.result);
+      });
+      socket.addEventListener('error', () => reject(new Error('Chrome connection failed.')), { once: true });
+    });
+  } finally {
+    clearTimeout(timer);
+    socket.close();
+  }
+}
+
+try {
+  let visible_browser_cdp;
+  try {
+    visible_browser_cdp = readFileSync(`${process.env.HOME}/.config/google-chrome/DevToolsActivePort`, 'utf8').trim().split('\n');
+  } catch {
+    throw new Error('Start visible Chrome with chrome-1440fl, then run ab-1440fl-sync.');
+  }
+  const { cookies } = await cdp_call(`ws://127.0.0.1:${visible_browser_cdp[0]}${visible_browser_cdp[1]}`, 'Storage.getCookies');
+  if (!cookies.length) throw new Error('No cookies from visible Chrome.');
+  const cookie_fields = ['name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite', 'expires', 'priority', 'sourceScheme', 'sourcePort', 'partitionKey'];
+  const saved_cookies = cookies.map(cookie => Object.fromEntries(cookie_fields.filter(field => field in cookie).map(field => [field, cookie[field]])));
+  const cookie_file = `${process.env.HOME}/.config/chrome-1440fl/cookies.json`;
+  writeFileSync(cookie_file, JSON.stringify(saved_cookies), { mode: 0o600 });
+  chmodSync(cookie_file, 0o600);
+  const response = await fetch('http://127.0.0.1:9223/json/version', { signal: AbortSignal.timeout(25000) });
+  if (!response.ok) throw new Error('Silent Chrome connection failed.');
+  const { webSocketDebuggerUrl } = await response.json();
+  await cdp_call(webSocketDebuggerUrl, 'Storage.setCookies', { cookies: saved_cookies });
+  const cookie_key = cookie => JSON.stringify([cookie.domain, cookie.path, cookie.name, cookie.partitionKey ?? null]);
+  const imported_cookies = new Map((await cdp_call(webSocketDebuggerUrl, 'Storage.getCookies')).cookies.map(cookie => [cookie_key(cookie), cookie.value]));
+  const matched = saved_cookies.filter(cookie => imported_cookies.get(cookie_key(cookie)) === cookie.value).length;
+  if (matched !== saved_cookies.length) throw new Error(`Cookie check failed: ${matched}/${saved_cookies.length} matched.`);
+  console.log(`Imported and checked ${matched} cookies across ${new Set(saved_cookies.map(cookie => cookie.domain)).size} domains.`);
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
+}
+JS

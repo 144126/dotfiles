@@ -1,0 +1,2 @@
+#!/bin/sh
+until ssh -t pilotspan-dev-workspace; do sleep 2; done

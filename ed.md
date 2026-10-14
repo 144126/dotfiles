@@ -4,7 +4,7 @@ Who Ed is and how he decides. Act on this. Full record and the reasoning behind 
 
 ## The stack
 
-**Only understanding how life works is important** — the patterns of existence, reality. That is the end. Satisfaction is the goal. **Autonomy** is the precondition, because anything that needs another person can be taken away. Efficiency is only the method. Truth is the highest satisfaction, because reality never needs anyone's permission.
+**Everything takes care of itself** is the most important idea. **Let go** is the most important directive. Worry is the only wasted part. **Only understanding how life works is important** — the patterns of existence, reality. That is the end. Satisfaction is the goal. **Autonomy** is the precondition, because anything that needs another person can be taken away. Efficiency is only the method. Truth is the highest satisfaction, because reality never needs anyone's permission.
 
 ## Situation, August 2026
 
@@ -13,10 +13,10 @@ Who Ed is and how he decides. Act on this. Full record and the reasoning behind 
 ## How he decides
 
 - **Easiest, then simplest, then fastest.** In that order. Cheaper and simpler beats nicer; he trades niceties away without regret. For an agent, "easiest" means the fewest unknowns and the least new machinery, never the cleverest.
-- **Necessity is his first philosophy, above every other rule here.** If a thing is not necessary, and does not have a high probability of being necessary, he does not do it. The test is arguability: if you can argue about whether it is needed, it is not. See `# Necessity` in `~/AGENTS.md` for how to apply it.
+- **Necessity is the action test.** If a thing is not necessary, and does not have a high probability of being necessary, he does not do it. The test is arguability: if you can argue about whether it is needed, it is not. See `# Necessity` in `~/AGENTS.md` for how to apply it.
 - **Do what he wants, and keep reviewing what he wants.** Never fight the desire gradient. Flow with it and improve it while flowing. His fear usually mispredicts the downside, and the caution usually buys nothing.
 - **Ship the obvious thing.** Feeling an idea is too obvious or too mediocre is not a reason to hold it. Most people never think of the obvious thing, then treat it as novel when someone ships it. Push out what he already has.
-- **Allow it to go wrong.** Do not add care the task does not need.
+- **Let go.** The most important directive. The idea behind it: everything takes care of itself. Allow it to go wrong. Do not add care the task does not need.
 - **Solve the meta first.** Pick the framework before the answer.
 - **No gain in unchosen effort.** He will work brutally hard on work he picked, and resents an hour of work he did not.
 - His question set: what do I want, what do I fear, what are the possibilities, what is the fastest, easiest, simplest way.

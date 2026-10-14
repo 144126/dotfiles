@@ -11,20 +11,19 @@ output "*" bg /home/ed/pics/dreamy_nostalgic_720p.png fill
 # relink dotfiles scripts so a wiped ~/.local/bin heals itself
 exec_always mkdir -p ~/.local/bin && ln -sf ~/i/144126/dotfiles/bin/* ~/.local/bin/
 exec_always test -f ~/.Xresources && xrdb -merge ~/.Xresources
-exec mkdir -p /run/user/1000/pulse && ln -sf /run/pipewire/pulse/native /run/user/1000/pulse/native
+exec ~/i/144126/dotfiles/bin/pw-start
 exec foot --server
 set $term footclient -e tmux
-exec_always autotiling
 exec swayidle -w timeout 144 ~/.local/bin/sway-blank
 # the Gemini daemon keeps the mic open, so it must not count as playing
 exec sway-audio-idle-inhibit --ignore-source-outputs Lavf60.16.101
 
 exec mako
-exec blueman-applet
 exec CopyQ
 exec wl-paste --watch cliphist store
 exec_always dbus-update-activation-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP QT_QPA_PLATFORM
 exec_always while :; do ~/.local/bin/battery-notify.sh; sleep 30; done
+exec while :; do ~/.local/bin/headphone-autoswitch; sleep 2; done
 exec_always /home/i/gemini_daemon/run.sh
 set $menu combined-menu
 
@@ -134,8 +133,6 @@ bindsym $mod+Control+Up exec pactl set-sink-volume @DEFAULT_SINK@ +5%
 bindsym $mod+Control+m exec pactl set-sink-mute @DEFAULT_SINK@ toggle
 bindsym $mod+Control+Left exec light -U 5
 bindsym $mod+Control+Right exec light -A 5
-bindsym --whole-window $mod+Control+button4 exec ~/.config/sway/scale.sh up
-bindsym --whole-window $mod+Control+button5 exec ~/.config/sway/scale.sh down
 bindsym Print exec flameshot gui
 bindsym $mod+Print exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
@@ -168,7 +165,7 @@ bindsym $mod+Control+Shift+0 exec ~/.config/sway/clip-multi.sh 10 reverse
 
 # Global voice: Mod+Ctrl+E start/stop. Mod+Ctrl+R mute/unmute while recording.
 # Stop queues transcription (paste when done). Waybar shows state; click toggles, right-click cancels.
-bindsym $mod+Control+e exec ~/.local/bin/sway-voice-global.sh
+bindsym --no-repeat $mod+Control+e exec ~/.local/bin/sway-voice-global.sh
 bindsym --no-repeat $mod+Control+r exec ~/.local/bin/sway-voice-global.sh mute
 
 bar {
@@ -193,7 +190,6 @@ for_window [title="^Picture in picture$"] floating enable, sticky enable, move p
 # share app_id=google-chrome with every other Chrome window and carry no PiP hint, only a title
 # that lacks the usual "... - Google Chrome" suffix real tabs/windows always have.
 for_window [app_id="google-chrome" title="^(?!.*Google Chrome).*$"] floating enable, sticky enable, move position center, resize set 400 300
-exec_always python3 ~/.config/sway/pip-remember.py
 for_window [app_id="google-chrome" title="^.* — Google Chrome$"] floating enable, resize set 800 600
 for_window [app_id="chromium" title="^.*new request|popup|auth"] floating enable, resize set 800 600
 for_window [app_id="firefox" title="^Extension:"] floating enable

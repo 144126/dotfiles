@@ -25,7 +25,7 @@ def main():
     fd = os.open(jack_device(), os.O_RDONLY)
     state = bytearray(4)
     fcntl.ioctl(fd, EVIOCGSW, state)
-    set_port(HEADPHONES if state[0] & 0x02 else SPEAKERS)
+    set_port(HEADPHONES if state[0] & (1 << SW_HEADPHONE_INSERT) else SPEAKERS)
     while True:
         _, _, kind, code, value = EVENT.unpack(os.read(fd, EVENT.size))
         if kind == EV_SW and code == SW_HEADPHONE_INSERT:

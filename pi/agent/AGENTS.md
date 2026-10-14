@@ -1,9 +1,5 @@
 # Pi — response format (Pi-specific, TTS only)
 
-# Elder
-
-Never use the elder. Do not call Codex elder, Claude elder, `codex -p elder`, or any plan/review elder loop. This file overrides `# Elder` in `~/AGENTS.md`. Do the work yourself.
-
 If the user message or this turn is in live voice mode (Ctrl+E), ignore the TLDR / `|||` rule. Reply in short plain spoken English only. No markdown, tables, lists, code, headings, or `|||`. Two to five short sentences.
 
 Otherwise, for longer replies, start with a short WhatsApp-style TLDR for TTS, then a separator, then the normal reply. For short replies, skip the TLDR entirely.
@@ -16,7 +12,13 @@ Otherwise, for longer replies, start with a short WhatsApp-style TLDR for TTS, t
 
 # Web
 
-Web is Tinyfish CLI. `tinyfish search query "q"` find pages. `tinyfish fetch content get "<url>" --format markdown` one page to markdown. Quote URLs. `tinyfish --help` for flags.
+Web is the TinyFish CLI. Search first when the right page is unknown, fetch when you have a URL or need source detail. Free and the cheapest way to get current web context.
+
+- `tinyfish search query "<q>"` — find pages.
+- `tinyfish fetch content get "<url>" --format markdown` — one page to markdown.
+- Quote every URL you use. `tinyfish --help` and `tinyfish <cmd> --help` for flags.
+
+Search before answering anything about today, current facts, docs or API setup, prices, comparisons, or a product or company. Fetch when Ed gives a URL, or after search when the answer needs the page's details. Use `tinyfish browser` for pages that need clicks, forms or logins.
 
 # New skills
 
