@@ -4,4 +4,5 @@ set -e
 url=$1
 [ -n "$url" ] || { echo "usage: xv <x-post-url> [out.mp4]" >&2; exit 1; }
 id=$(grep -oE 'status/[0-9]+' <<<"$url" | cut -d/ -f2)
-exec cobalt "$url" "${2:-$HOME/Downloads/xv-${id:-$(date +%s)}.mp4}"
+mkdir -p ~/vid/X
+exec cobalt "$url" "${2:-$HOME/vid/X/xv-${id:-$(date +%s)}.mp4}"
