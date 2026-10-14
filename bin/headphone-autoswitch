@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+# Switch the built-in sound card to headphones when the jack is plugged in, back to speakers when pulled.
+import fcntl, os, re, struct, subprocess
+
+SINK = "alsa_output.pci-0000_00_1f.3.analog-stereo"
+HEADPHONES = "analog-output-headphones"
+SPEAKERS = "analog-output-speaker-always"
+EV_SW, SW_HEADPHONE_INSERT = 0x05, 0x02
+EVENT = struct.Struct("llHHi")
+EVIOCGSW = (2 << 30) | (4 << 16) | (ord("E") << 8) | 0x1b
+
+
+def jack_device():
+    for block in open("/proc/bus/input/devices").read().split("\n\n"):
+        if 'Name="HDA Intel PCH Headphone"' in block:
+            return "/dev/input/" + re.search(r"event\d+", block).group()
+    raise SystemExit("headphone jack device not found")
+
+
+def set_port(port):
+    subprocess.run(["pactl", "set-sink-port", SINK, port], check=True)
+
+
+def main():
+    fd = os.open(jack_device(), os.O_RDONLY)
+    state = bytearray(4)
+    fcntl.ioctl(fd, EVIOCGSW, state)
+    set_port(HEADPHONES if state[0] & 0x02 else SPEAKERS)
+    while True:
+        _, _, kind, code, value = EVENT.unpack(os.read(fd, EVENT.size))
+        if kind == EV_SW and code == SW_HEADPHONE_INSERT:
+            set_port(HEADPHONES if value else SPEAKERS)
+
+
+main()
