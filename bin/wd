@@ -1,0 +1,14 @@
+#!/bin/sh
+# Start Waydroid on an empty sway workspace, or focus it if already open.
+set -e
+if swaymsg -t get_tree | jq -e '.. | objects | select(.app_id? == "Waydroid")' >/dev/null; then
+  exec swaymsg -q '[app_id="Waydroid"] focus'
+fi
+sv=/var/service/waydroid-container
+# down file: runit must not autostart the container at boot
+[ -e /etc/sv/waydroid-container/down ] || sudo touch /etc/sv/waydroid-container/down
+[ -e $sv ] || sudo ln -s /etc/sv/waydroid-container $sv
+until sudo sv up $sv 2>/dev/null; do sleep 1; done
+until dbus-send --system --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames | grep -q id.waydro.Container; do sleep 0.5; done
+ws=$(swaymsg -t get_workspaces | jq '[.[] | .num] as $u | first(range(1;100) | select(. as $n | $u | index($n) | not))')
+swaymsg -q "workspace number $ws; exec waydroid show-full-ui"

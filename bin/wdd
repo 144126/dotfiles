@@ -1,0 +1,10 @@
+#!/bin/sh
+# Stop Waydroid fully and free its RAM.
+waydroid session stop 2>/dev/null
+sudo sv down /var/service/waydroid-container 2>/dev/null
+sudo waydroid container stop 2>/dev/null
+sudo pkill -9 -x lxc-start 2>/dev/null
+pkill -9 -f '^[^ ]*python[^ ]* [^ ]*/waydroid ' 2>/dev/null
+sync
+echo 3 | sudo tee /proc/sys/vm/drop_caches >/dev/null
+free -h | sed -n 2p
