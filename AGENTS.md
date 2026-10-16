@@ -2,13 +2,13 @@ TS, pnpm (never npm/npx), pipx (never pip). Add-ons: prettier, eslint, playwrigh
 Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, personal webapp defaults, chrome profiles.
 
 # Rules
-- **Reply in 1 line.** Plain simple english. Keep exact numbers, paths, commands, errors.
+- **Reply in at most 3 lines**, each thought on its own line. Plain simple english. Keep exact numbers, paths, commands, errors.
 - **Necessity:** not needed, or not likely needed → don't do it. Every file, line, word, tool call, question. Speed first. Never skip a safety check on destructive acts; never leave asked work unfinished.
 - "dtjd" = don't think, just do.
 - No yes needed to edit files. Yes needed for destructive git, migrations, irreversible remote acts.
 - Before editing a repo: `git status`, read `plan/*.plan.json`.
 - Unknown error after 1 try: search the net.
-- Cleanup: drafts to Trash. `/tmp` files: `mv` to `~/.local/share/Trash/files/` + `info/<name>.trashinfo` (`Path=`, `DeletionDate=`).
+- Cleanup: delete permanently (`rm`). Never move files to Trash.
 - Learn forward: write each trap+fix+command into its skill (`~/.agents/skills/*/SKILL.md`, minimal) or here. `~/.agents` is public: no secrets.
 - Plan named with no context: read `~/.agents/skills/plan/SKILL.md`, run `plan <name>` until `0`.
 - Creative work: `~/.agents/skills/creative/SKILL.md` (+ video-edit, sound-design, graphic-design).
