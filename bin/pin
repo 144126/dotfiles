@@ -1,0 +1,39 @@
+#!/bin/sh
+# pin: in a Claude Code chat, `! pin` pins or unpins it. In a terminal, `pin` lists pins and resumes one.
+# Pins are hardlinks: Claude Code deletes transcripts idle 30 days (cleanupPeriodDays), a pinned one survives and is relinked.
+d="${XDG_DATA_HOME:-$HOME/.local/share}/claude-pins"
+p="$HOME/.claude/projects"
+
+field() { grep -o "\"$1\":\"[^\"]*\"" "$2" | tail -n 1 | cut -d'"' -f4; }
+
+if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ]; then
+  id=$CLAUDE_CODE_SESSION_ID
+  for f in "$d"/*/"$id.jsonl"; do
+    [ -e "$f" ] && rm "$f" && echo unpinned && exit 0
+  done
+  for t in "$p"/*/"$id.jsonl"; do
+    [ -e "$t" ] || { echo "no transcript for $id" >&2; exit 1; }
+    mkdir -p "$d/$(basename "$(dirname "$t")")"
+    ln "$t" "$d/$(basename "$(dirname "$t")")/" && echo pinned
+    exit
+  done
+fi
+
+list=$(ls -t "$d"/*/*.jsonl 2>/dev/null)
+[ -n "$list" ] || { echo "no pins. in a chat: ! pin"; exit 0; }
+i=0
+echo "$list" | while read -r f; do
+  i=$((i + 1))
+  t=$(field customTitle "$f")
+  t=${t:-$(field aiTitle "$f")}
+  echo "$i) ${t:-untitled}"
+done
+printf 'resume #: '
+read -r n
+case $n in '' | *[!0-9]*) exit 1 ;; esac
+f=$(echo "$list" | sed -n "${n}p")
+[ -n "$f" ] || exit 1
+t="$p/$(basename "$(dirname "$f")")/$(basename "$f")"
+[ -e "$t" ] || { mkdir -p "$(dirname "$t")" && ln "$f" "$t"; }
+cd "$(grep -o '"cwd":"[^"]*"' "$f" | head -n 1 | cut -d'"' -f4)" || exit 1
+exec claude -r "$(basename "$f" .jsonl)"

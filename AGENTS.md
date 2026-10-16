@@ -19,6 +19,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Portfolio 54.apexlinks.org (ed.apexlinks.org 301s there). Resume calm.apexlinks.org/144126 (gist `70cba709`, `resume.json`). Dump dump.apexlinks.org = `~/i/dump`.
 - Music: only `yue2` skill.
 - `orc` = Opus 5.5 max orchestrating Haiku 5.5 workers (`~/.claude/orc.md`, agents `worker` + `Explore`). Claude's default for every task: `# Orchestrate` in `~/.claude/CLAUDE.md`. Traps: a subagent with no `effort` inherits max; `CLAUDE_CODE_EFFORT_LEVEL=max` forces max on every worker; built-in Explore ignores `CLAUDE_CODE_SUBAGENT_MODEL`. Why: `~/search/opus55-haiku55-orchestration-root.md`.
+- Pin Claude chats: `! pin` in a chat toggles it; `pin` in a terminal lists pins and resumes one. Native pin (`claude agents`, ctrl+t) covers background sessions only. Claude deletes transcripts idle 30 days (`cleanupPeriodDays`, by mtime); pins are hardlinks in `~/.local/share/claude-pins`, so they survive.
 
 # Commits
 Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period>`, blank line, body at 72 (what+why, `- ` bullets), trailers last. Body required for breaking, security, migration, revert.
