@@ -45,7 +45,7 @@ Personal naming and scaffolding prefs, not work policy.
 - Always headless (`ab-1440fl`, port 9223). Never `--headed`, visible Chrome, or port 9222 unless Ed says visible / headed / `chrome-1440fl`.
 - Agents: `ab-1440fl <cmd>` or plain `agent-browser` (`config.json` is `headed: false`, `autoConnect: false`, `cdp: "9223"`). Never attach to the visible window unless Ed asks.
 - After Ed logs into a new site in the visible window: `ab-1440fl-sync` (CDP cookie export). Do not file-copy Cookies while Chrome is open — auth cookies get dropped. Never `--profile Default` / `chrome-profile-clone` (Chrome for Testing cannot decrypt 1440fl cookies).
-- Remote debugging stays on via `chrome-1440fl` (desktop file + `~/.local/bin/chrome-1440fl`). Restart Chrome once. No `chrome://inspect` Allow pop-up after that.
+- Chrome 136+ ignores `--remote-debugging-port` on the default profile, so `chrome-1440fl` opens no 9222. Visible attach: toggle `chrome://inspect/#remote-debugging`, click Allow, `agent-browser --auto-connect`. X rejects `HeadlessChrome` UA; `ab-1440fl` sets a real UA at launch. Why: `~/search/agent-browser-chrome-root.md`.
 - Never let agent-browser write a profile into `/tmp` (tmpfs). `TMPDIR=$HOME/.cache/abtmp`.
 - Never `tab new` on the visible Chrome (opens last-used profile, not 1440fl). Never `close` the visible session.
 
