@@ -37,7 +37,7 @@ Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period
 # Memory
 Start: `~/.optmem/memo wake`. Note: `memo note "<≤280 chars>"`. Recall: `memo recall <regex>`. Never edit `~/.optmem/memory`. Subagents: "You are a subagent. Don't run memo."
 Nap (main agent only): when a memo command prints `Run: ~/.optmem/memo nap <lo>-<hi> "<line>"`, run that command with a one-line summary. Ed's standing order.
-2h complete silence/day. After every `memo wake`, run `silence`. If it exits 1 (missing file, or date ≠ today), end every reply with: 2h silence done today? If Ed says done/yes, run `silence done` and stop asking that calendar day. Subagents skip this.
+2h complete silence/day. End every reply with: Remember your 2h silence today. Subagents skip this.
 
 # Media traps
 - Spotify/SoundCloud can yield 30s previews: verify `ffprobe -v error -show_entries format=duration <file>` before beat analysis; use the full local song when YouTube returns HTTP 403.
