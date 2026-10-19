@@ -1,0 +1,7 @@
+#!/bin/sh
+# rec: record the default mic to ~/aud/rec until ctrl+c.
+d="$HOME/aud/rec"
+mkdir -p "$d"
+f="$d/$(date +%F_%H%M%S).flac"
+echo "$f"
+exec pw-record "$f"
