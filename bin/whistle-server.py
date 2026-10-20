@@ -1,6 +1,6 @@
 #!/home/ed/.venvs/whistle/bin/python
 # POST raw audio to :8081, get plain text back. Cactus Whistle, loaded once.
-# Runs as runit service /etc/sv/whisper-server. One request at a time.
+# Runs as runit service /etc/sv/whistle-server. One request at a time.
 # venv: python3 -m venv ~/.venvs/whistle; ~/.venvs/whistle/bin/pip install cactus-needle
 # 16 kHz WAV, at most 30 s per pass; longer audio is split here.
 import os, tempfile, wave

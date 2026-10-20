@@ -1,6 +1,6 @@
 #!/home/ed/.venvs/parakeet-redux/bin/python
 # POST raw audio to :8081, get plain text back. moondream/parakeet-redux, loaded once.
-# Runs as runit service /etc/sv/whisper-server. One request at a time.
+# Runs as runit service /etc/sv/whistle-server. One request at a time.
 # venv: python3 -m venv ~/.venvs/parakeet-redux; pip install torch --index-url https://download.pytorch.org/whl/cpu; pip install 'moondream>=2.4.0'
 import os, tempfile
 from http.server import HTTPServer, BaseHTTPRequestHandler

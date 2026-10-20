@@ -22,13 +22,13 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
 - `voice.ts` — the pi extension.
 - `say` — `say "text"` CLI (Paradee, piper fallback); `say --stop`.
 - `keybindings.json` — moves pi's own ctrl+s, ctrl+e and ctrl+alt+r actions aside so the voice keys raise no warnings.
-- `whistle-server.py`, `whisper-server.run` — the speech-to-text server used here (zip only).
+- `whistle-server.py`, `whistle-server.run` — the speech-to-text server used here (zip only).
 
 ## Steps
 
 1. Needs: Python 3.11 or 3.12 (misaki has no wheel for 3.13+), PipeWire or PulseAudio with `pacat`, `parec`, `pactl` (pulseaudio-utils), pi (`@earendil-works/pi-coding-agent`), internet.
 2. Paths are hardcoded to `/home/ed`. If `$HOME` differs:
-   `sed -i "s|/home/ed|$HOME|g" voice.ts say whistle-server.py whisper-server.run`
+   `sed -i "s|/home/ed|$HOME|g" voice.ts say whistle-server.py whistle-server.run`
 3. Install the daemon:
    ```
    mkdir -p ~/i/paradee && cp voice.py paradee_tts.py requirements.txt ~/i/paradee/
@@ -43,7 +43,7 @@ Agent: follow these steps in order. Done = every check in step 7 passes.
    python3 -m venv ~/.venvs/whistle && ~/.venvs/whistle/bin/pip install cactus-needle
    cp whistle-server.py ~/.local/bin/ && chmod +x ~/.local/bin/whistle-server.py
    ```
-   Run it at boot: runit uses `whisper-server.run` as `/etc/sv/whisper-server/run` (fix its script path to `~/.local/bin/whistle-server.py`); with systemd, a user service with `ExecStart=%h/.local/bin/whistle-server.py`.
+   Run it at boot: runit uses `whistle-server.run` as `/etc/sv/whistle-server/run` (fix its script path to `~/.local/bin/whistle-server.py`); with systemd, a user service with `ExecStart=%h/.local/bin/whistle-server.py`.
    A token is optional: if `~/.config/jot-stt.token` exists, both sides use it.
    Another server works too: set `PI_VOICE_URL` (POST WAV, plain text back).
 5. Install the pi extension and CLI (remove old `speak.ts` and `voice-input.ts` from the extensions folder if present):
