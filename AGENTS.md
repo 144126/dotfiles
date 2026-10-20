@@ -12,6 +12,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Cleanup: delete permanently (`rm`). Never move files to Trash.
 - Learn forward: write each trap+fix+command into its skill (`~/.agents/skills/*/SKILL.md`, minimal) or here. `~/.agents` is public: no secrets.
 - Plan named with no context: read `~/.agents/skills/plan/SKILL.md`, run `plan <name>` until `0`.
+- UI work, any project: follow `~/.agents/skills/ui-ux/SKILL.md` and pass `foundations.md` there.
 - Creative work: `~/.agents/skills/creative/SKILL.md` (+ video-edit, sound-design, graphic-design).
 
 # Facts
