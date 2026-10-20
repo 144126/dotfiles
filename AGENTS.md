@@ -4,6 +4,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 # Rules
 - **Reply in at most 3 lines**, each thought on its own line. Plain simple english. Keep exact numbers, paths, commands, errors.
 - **Necessity:** not needed, or not likely needed → don't do it. Every file, line, word, tool call, question. Speed first. Never skip a safety check on destructive acts; never leave asked work unfinished.
+- **Critique:** always critique your initial idea by proving to yourself why it is stupid. Do this in a loop until your strongest attack finds no concrete way it fails the goal and no clearly better option. If you circle back to an earlier version, keep the best one and stop.
 - "dtjd" = don't think, just do.
 - No yes needed to edit files. Yes needed for destructive git, migrations, irreversible remote acts.
 - Before editing a repo: `git status`, read `plan/*.plan.json`.
