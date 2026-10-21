@@ -14,6 +14,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Plan named with no context: read `~/.agents/skills/plan/SKILL.md`, run `plan <name>` until `0`.
 - UI work, any project: follow `~/.agents/skills/ui-ux/SKILL.md` and pass `foundations.md` there.
 - Creative work: `~/.agents/skills/creative/SKILL.md` (+ video-edit, sound-design, graphic-design).
+- Charts and diagrams: use Ondine (Mermaid-compatible, Rust, 0 deps). Source: https://x.com/_jxom/status/2112320010081501186 · https://ondine.sh
 
 # Facts
 - Sway: edit live `~/.config/sway/config` and repo copy. `source ~/.bashrc` after alias changes.
