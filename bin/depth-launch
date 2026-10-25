@@ -1,2 +1,8 @@
 #!/bin/sh
-exec tmux -L depth -f ~/.tmux-depth.conf new -A -s depth
+# One tmux server (default socket). Entered from sway Mod4+Shift+Return as
+# `foot -e depth-launch`, or typed as `depth`.
+# Inside tmux: open a pilotspan window in place. Outside: attach or create.
+if [ -n "$TMUX" ]; then
+	exec tmux new-window -c "$PWD" -n 'ps' "$HOME/.local/bin/depth-ssh"
+fi
+exec tmux new -A -s main
