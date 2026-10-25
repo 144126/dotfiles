@@ -1,6 +1,53 @@
 #!/usr/bin/env bash
 # Ed's visible Chrome. Default / 1440fl. Remote debugging always on. No Allow pop-up.
 set -euo pipefail
+if [[ "${1:-}" == "--spotify-play" ]]; then
+  exec node --input-type=module <<'JS'
+import fs from 'node:fs';
+import { spawn } from 'node:child_process';
+const [port, path] = fs.readFileSync(`${process.env.HOME}/.config/google-chrome/DevToolsActivePort`, 'utf8').trim().split('\n');
+const socket = new WebSocket(`ws://127.0.0.1:${port}${path}`);
+const timeout = setTimeout(() => process.exit(1), 20000);
+let id = 0;
+const pending = new Map();
+socket.onmessage = event => {
+  const message = JSON.parse(event.data);
+  if (pending.has(message.id)) {
+    pending.get(message.id)(message.result);
+    pending.delete(message.id);
+  }
+};
+await new Promise(resolve => socket.onopen = resolve);
+const call = (method, params = {}, sessionId) => new Promise(resolve => {
+  pending.set(++id, resolve);
+  socket.send(JSON.stringify({ id, method, params, sessionId }));
+});
+let target = (await call('Target.getTargets')).targetInfos.find(t => t.type === 'page' && t.url.startsWith('https://open.spotify.com/'));
+if (!target) {
+  spawn('/usr/bin/google-chrome-stable', ['--profile-directory=Default', 'https://open.spotify.com/'], { detached: true, stdio: 'ignore' }).unref();
+  for (let attempt = 0; attempt < 15 && !target; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    target = (await call('Target.getTargets')).targetInfos.find(t => t.type === 'page' && t.url.startsWith('https://open.spotify.com/'));
+  }
+}
+if (!target) process.exit(1);
+const { sessionId } = await call('Target.attachToTarget', { targetId: target.targetId, flatten: true });
+await call('Page.bringToFront', {}, sessionId);
+for (let attempt = 0; attempt < 15; attempt++) {
+  const result = await call('Runtime.evaluate', { expression: `(() => { const button = document.querySelector('[data-testid="control-button-playpause"]'); if (!button) return null; if (button.getAttribute('aria-label') === 'Pause') return { playing: true }; const rect = button.getBoundingClientRect(); return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }; })()`, returnByValue: true }, sessionId);
+  if (result.result.value) {
+    if (!result.result.value.playing) {
+      await call('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...result.result.value }, sessionId);
+      await call('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...result.result.value }, sessionId);
+    }
+    break;
+  }
+  await new Promise(resolve => setTimeout(resolve, 500));
+}
+clearTimeout(timeout);
+socket.close();
+JS
+fi
 exec /usr/bin/google-chrome-stable \
   --profile-directory=Default \
   --remote-debugging-port=9222 \

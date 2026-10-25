@@ -139,6 +139,7 @@ bindsym $mod+Print exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
 
 # Screen off and keyboard/mouse locked until Mod+Ctrl+A again. Also after 144s idle.
+bindsym --no-repeat $mod+Control+s exec ~/.local/bin/chrome-1440fl --spotify-play
 bindsym $mod+Control+a exec ~/.local/bin/sway-blank
 
 # Clipboard history multi-paste: Mod+Ctrl+N copies last N items (chronological order) to clipboard
