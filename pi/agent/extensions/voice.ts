@@ -1,4 +1,4 @@
-// voice — pi speaks its replies as they stream (Paradee, ~/i/paradee/voice.py) and takes voice calls.
+// voice — pi speaks its replies as they stream (Phonon, dotfiles/voice/voice.py) and takes voice calls.
 // ctrl+e: voice call; talk any time, talking over pi cuts it off. ctrl+r: dictate; ctrl+r again sends it, ctrl+alt+r puts it in the editor.
 // ctrl+s: stop pi talking; when quiet, read the part after ||| aloud; in a call, mute your mic.
 // /speak on|off toggles speaking replies outside calls.
@@ -8,8 +8,8 @@ import fs from "node:fs";
 import net from "node:net";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-const DIR = "/home/ed/i/paradee";
-const SOCK = "/tmp/paradee.sock";
+const DIR = "/home/ed/i/144126/dotfiles/voice";
+const SOCK = "/tmp/voice.sock";
 const FLAG = "/home/ed/.pi/speak";
 const CALL_PROMPT =
 	"\n\nVOICE CALL: the user is talking to you and hears your reply as speech. Reply in short plain spoken English only. No markdown, tables, lists, code, headings, TLDR or ||| split. Two to five short sentences. Sound like you are talking, not writing.";
@@ -43,7 +43,7 @@ function send(msg: string): Promise<string | null> {
 function daemon(): Promise<boolean> {
 	starting ??= (async () => {
 		if ((await send("ping\n")) !== null) return true;
-		spawn(`${DIR}/.venv/bin/python`, [`${DIR}/voice.py`, "--serve"], {
+		spawn("/home/ed/.venvs/voice/bin/python", [`${DIR}/voice.py`, "--serve"], {
 			stdio: "ignore",
 			detached: true,
 			env: { ...process.env, HF_HUB_OFFLINE: "1" },

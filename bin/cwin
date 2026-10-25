@@ -1,0 +1,18 @@
+#!/bin/bash
+# cwin <name> [claude args...]: new tmux window in the foot session, running claude, focus stays put.
+# cwin taste --model claude-haiku-5-5 --effort xhigh "update tasteskill to v2.1"
+# CWIN_DIR sets the working dir (default ~). Prints the new pane id.
+# The command goes to new-window itself (not send-keys), so it can't race the shell's startup.
+[ $# -ge 1 ] || { sed -n 2,4p "$0"; exit 1; }
+n=$1; shift
+if [ -n "$TMUX" ]; then s=$(tmux display -p '#S')
+else s=$(tmux ls -F '#{session_attached} #S' 2>/dev/null | sort -rn | awk 'NR==1{print $2}'); fi
+if [ -z "$s" ]; then
+  s=main
+  tmux new -d -s main
+  swaymsg -q exec "foot tmux attach -t main"
+fi
+p=$(tmux new-window -d -P -F '#{pane_id}' -t "$s:" -c "${CWIN_DIR:-$HOME}" \
+  "bash -ic $(printf %q "claude $(printf '%q ' "$@"); exec bash")")
+tmux rename-window -t "$p" "$n"
+echo "$p"

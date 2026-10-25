@@ -4,7 +4,7 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/gemini", "clock"],
+    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/claude-voice", "custom/gemini", "clock"],
     "custom/telegram": {
         "format": " tg ",
         "tooltip-format": "Open Telegram",
@@ -91,6 +91,13 @@
         "hide-empty-text": true,
         "on-click": "~/.local/bin/sway-voice-global.sh",
         "on-click-right": "~/.local/bin/sway-voice-global.sh cancel"
+    },
+    "custom/claude-voice": {
+        "exec": "cat ~/.local/state/claude-voice/status.txt 2>/dev/null || true",
+        "interval": 1,
+        "format": " {} ",
+        "escape": false,
+        "hide-empty-text": true
     },
     "custom/gemini": {
         "exec": "cat ~/.local/state/gemini-live-daemon/status.txt 2>/dev/null || true",

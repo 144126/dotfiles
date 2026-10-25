@@ -1,0 +1,3 @@
+#!/bin/bash
+# Super+z: mute/unmute the live voice, Claude first, else Gemini Live.
+~/.local/bin/claude-voice mute || /usr/bin/node /home/i/gemini_daemon/client.mjs mute

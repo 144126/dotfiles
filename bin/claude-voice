@@ -1,0 +1,147 @@
+#!/usr/bin/env node
+// claude-voice toggle|mute: a Claude session in a tmux window ("voice"), talked to by voice.
+// Mic -> Whistle speech-to-text -> typed into the pane; Claude's replies -> spoken by Phonon.
+// Both go through the voice daemon (/tmp/voice.sock, dotfiles/voice/voice.py).
+// Super+Ctrl+z toggles, Super+z (mod-z) mutes. Ending leaves the tmux window open.
+import net from "node:net";
+import fs from "node:fs";
+import os from "node:os";
+import { execFileSync, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+
+const H = os.homedir();
+const D = `${H}/.local/state/claude-voice`;
+const SOCK = "/tmp/voice.sock";
+const PY = `${H}/.venvs/voice/bin/python`;
+const VOICE = `${H}/i/144126/dotfiles/voice/voice.py`;
+const PROMPT = "You are in a voice call: the user speaks, your replies are read aloud. Keep replies short and spoken. No markdown, tables, lists or code unless asked; do the work with tools, then say the result in a sentence or two.";
+fs.mkdirSync(D, { recursive: true });
+
+const pid = () => {
+  try {
+    const p = +fs.readFileSync(`${D}/pid`, "utf8");
+    process.kill(p, 0);
+    return p;
+  } catch {
+    return 0;
+  }
+};
+const status = (t) => fs.writeFileSync(`${D}/status.txt`, t);
+const tmux = (...a) => execFileSync("tmux", a, { encoding: "utf8" }).trim();
+const notify = (t) => spawn("notify-send", ["-t", "2500", "claude voice", t]).unref();
+
+// one short request to the voice daemon, e.g. "q\n<text>" speaks, "stop\n" stops
+const send = (msg) =>
+  new Promise((ok) => {
+    const c = net.connect(SOCK, () => c.end(msg));
+    c.on("error", () => ok(false));
+    c.on("close", () => ok(true));
+  });
+
+// "qp" and "q" both = Phonon (streamed)
+const speak = (text) => send(`qp\n${text}`);
+
+async function daemon() {
+  if (await send("ping\n")) return true;
+  spawn(PY, [VOICE, "--serve"], { detached: true, stdio: "ignore", env: { ...process.env, HF_HUB_OFFLINE: "1" } }).unref();
+  for (let i = 0; i < 120; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (await send("ping\n")) return true;
+  }
+  return false;
+}
+
+async function run() {
+  fs.writeFileSync(`${D}/pid`, String(process.pid));
+  status("claude …");
+  if (!(await daemon())) {
+    notify("voice daemon did not start");
+    return quit();
+  }
+  const id = randomUUID();
+  const pane = execFileSync("cwin", ["voice", "--session-id", id, "--append-system-prompt", PROMPT], { encoding: "utf8" }).trim();
+  const log = `${H}/.claude/projects/${H.replace(/[^a-zA-Z0-9]/g, "-")}/${id}.jsonl`;
+
+  // speak each new assistant text block as it lands in the transcript
+  let off = 0, rest = "", seen = false;
+  setInterval(() => {
+    try {
+      const fd = fs.openSync(log, "r");
+      const buf = Buffer.alloc(fs.fstatSync(fd).size - off);
+      off += fs.readSync(fd, buf, 0, buf.length, off);
+      fs.closeSync(fd);
+      const lines = (rest + buf.toString()).split("\n");
+      rest = lines.pop();
+      for (const l of lines) {
+        const r = JSON.parse(l);
+        if (r.type !== "assistant" || r.isSidechain) continue;
+        for (const b of r.message?.content ?? []) if (b.type === "text" && b.text.trim()) speak(b.text);
+      }
+    } catch {}
+  }, 300);
+
+  // end when claude exits or its window closes
+  setInterval(() => {
+    let cmd = "";
+    try {
+      cmd = tmux("display", "-p", "-t", pane, "#{pane_current_command}");
+    } catch {}
+    if (cmd === "claude") seen = true;
+    else if (seen || !cmd) quit();
+  }, 2000);
+
+  let muted = false;
+  const c = net.connect(SOCK, () => c.write("listen\n"));
+  process.on("SIGUSR1", () => {
+    muted = !muted;
+    c.write(muted ? "mute\n" : "unmute\n");
+    status(muted ? "claude muted" : "claude ●");
+  });
+  let got = "";
+  c.on("data", (d) => {
+    const lines = (got + d).split("\n");
+    got = lines.pop();
+    for (const l of lines) {
+      if (l.startsWith("ready")) {
+        status("claude ●");
+        notify(l === "ready" ? "listening" : "listening (no echo cancel: it can't hear you while it talks)");
+      } else if (l === "speech") status("claude ◉");
+      else if (l === "heard") status("claude …");
+      else if (l === "drop") status(muted ? "claude muted" : "claude ●");
+      else if (l.startsWith("text ")) {
+        tmux("send-keys", "-t", pane, "-l", l.slice(5));
+        tmux("send-keys", "-t", pane, "Enter");
+        status("claude ●");
+      } else if (l.startsWith("error")) notify(l);
+    }
+  });
+  c.on("close", quit);
+  c.on("error", quit);
+}
+
+async function quit() {
+  status("");
+  await send("stop\n");
+  try {
+    if (+fs.readFileSync(`${D}/pid`, "utf8") === process.pid) fs.unlinkSync(`${D}/pid`);
+  } catch {}
+  process.exit();
+}
+
+const p = pid();
+switch (process.argv[2]) {
+  case "toggle":
+    if (p) process.kill(p);
+    else spawn(process.argv[1], ["run"], { detached: true, stdio: "ignore" }).unref();
+    break;
+  case "mute":
+    if (!p) process.exit(1);
+    process.kill(p, "SIGUSR1");
+    break;
+  case "run":
+    process.on("SIGTERM", quit);
+    run();
+    break;
+  default:
+    console.log("claude-voice toggle|mute");
+}

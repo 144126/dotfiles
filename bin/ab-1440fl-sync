@@ -37,8 +37,10 @@ try {
   }
   const { cookies } = await cdp_call(`ws://127.0.0.1:${visible_browser_cdp[0]}${visible_browser_cdp[1]}`, 'Storage.getCookies');
   if (!cookies.length) throw new Error('No cookies from visible Chrome.');
+  // Google kills sessions copied between browsers; the silent profile keeps its own Google login.
+  const synced_cookies = cookies.filter(cookie => !/(^|\.)(google\.[a-z.]+|youtube\.com|gstatic\.com)$/.test(cookie.domain));
   const cookie_fields = ['name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite', 'expires', 'priority', 'sourceScheme', 'sourcePort', 'partitionKey'];
-  const saved_cookies = cookies.map(cookie => Object.fromEntries(cookie_fields.filter(field => field in cookie).map(field => [field, cookie[field]])));
+  const saved_cookies = synced_cookies.map(cookie => Object.fromEntries(cookie_fields.filter(field => field in cookie).map(field => [field, cookie[field]])));
   const cookie_file = `${process.env.HOME}/.config/chrome-1440fl/cookies.json`;
   writeFileSync(cookie_file, JSON.stringify(saved_cookies), { mode: 0o600 });
   chmodSync(cookie_file, 0o600);

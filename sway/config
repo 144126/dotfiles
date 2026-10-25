@@ -6,7 +6,7 @@ set $right l
 xwayland force
 
 output eDP-1 scale 1
-output "*" bg /home/ed/pics/dreamy_nostalgic_720p.png fill
+output "*" bg #1a1a2e solid_color
 
 # relink dotfiles scripts so a wiped ~/.local/bin heals itself
 exec_always mkdir -p ~/.local/bin && ln -sf ~/i/144126/dotfiles/bin/* ~/.local/bin/
@@ -43,9 +43,12 @@ bindsym $mod+Shift+a exec flameshot gui
 bindsym $mod+Shift+v exec cliphist list | wmenu | cliphist decode | wl-copy
 bindsym $mod+Shift+r exec sh -c 'sway-mirror --stop 2>/dev/null; pkill -USR2 waybar 2>/dev/null'
 
-# Gemini Live: Super+Shift+z start/end session. Super+z mute/unmute while it is on.
+# Gemini Live: Super+Shift+z start/end session.
 bindsym --no-repeat $mod+Shift+z exec /home/i/gemini_daemon/always-on-audio.sh
-bindsym --no-repeat $mod+z exec /usr/bin/node /home/i/gemini_daemon/client.mjs mute
+# Super+z: mute/unmute the live voice (Claude first, else Gemini Live)
+bindsym --no-repeat $mod+z exec ~/.local/bin/mod-z
+# Super+Ctrl+z: start/end the Claude voice session (Whistle in, Phonon out, one headless Claude session)
+bindsym --no-repeat $mod+Control+z exec ~/.local/bin/claude-voice toggle
 
 # Super+a sends a screenshot into the live session. Super+q starts screen frames.
 bindsym --no-repeat $mod+a exec /home/i/gemini_daemon/mod-a.sh
@@ -131,6 +134,7 @@ bindsym --locked XF86MonBrightnessUp exec light -A 5
 # Volume / brightness hotkeys (for keyboards without media keys)
 bindsym $mod+Control+Down exec pactl set-sink-volume @DEFAULT_SINK@ -5%
 bindsym $mod+Control+Up exec pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym --no-repeat $mod+Control+s exec ~/.local/bin/chrome-1440fl --spotify-play
 bindsym $mod+Control+m exec pactl set-sink-mute @DEFAULT_SINK@ toggle
 bindsym $mod+Control+Left exec light -U 5
 bindsym $mod+Control+Right exec light -A 5
@@ -139,7 +143,6 @@ bindsym $mod+Print exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
 
 # Screen off and keyboard/mouse locked until Mod+Ctrl+A again. Also after 144s idle.
-bindsym --no-repeat $mod+Control+s exec ~/.local/bin/chrome-1440fl --spotify-play
 bindsym $mod+Control+a exec ~/.local/bin/sway-blank
 
 # Clipboard history multi-paste: Mod+Ctrl+N copies last N items (chronological order) to clipboard

@@ -2,8 +2,8 @@ import collections, io, os, queue, re, signal, socket, subprocess, sys, threadin
 
 import numpy as np
 
-SOCK = "/tmp/paradee.sock"
-VAD_MODEL = os.path.expanduser("~/i/paradee/silero_vad.onnx")
+SOCK = "/tmp/voice.sock"
+VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
 STT_URL = os.environ.get("PI_VOICE_URL", "http://127.0.0.1:8081/")
 TOKEN_FILE = os.path.expanduser("~/.config/jot-stt.token")
 TOKEN = os.environ.get("WHISTLE_TOKEN") or (open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else "")
@@ -17,7 +17,7 @@ lock = threading.Lock()
 tts_lock = threading.Lock()
 st = {"gen": 0, "out": None, "until": 0.0, "busy": False, "sink": None, "call": None}
 texts, pcms = queue.Queue(), queue.Queue()
-tts = None
+phonon = None
 
 
 def end(p, now=False):
@@ -43,17 +43,34 @@ def playing():
     return st["busy"] or not texts.empty() or not pcms.empty() or time.time() < st["until"]
 
 
+def phonon_chunks(text):
+    # Phonon (gradium/phonon-31m-en, q8) streams 80 ms chunks, so speech starts in ~0.3 s; loaded on first use
+    global phonon
+    if not phonon:
+        import ptts
+
+        phonon = ptts.TTS(lang="en", quant="q8")
+    with phonon.stream(text) as audio:
+        yield from audio
+
+
+def phonon_pcm(text):
+    return np.concatenate(list(phonon_chunks(text))) if text.strip() else np.zeros(0, dtype=np.float32)
+
+
 def synth():
     while True:
-        gen, text = texts.get()
+        gen, text, engine = texts.get()
         if gen != st["gen"]:
             continue
         st["busy"] = True
         try:
             with tts_lock:
-                pcm = tts(text)
-            if len(pcm):
-                pcms.put((gen, pcm.astype("<f4").tobytes(), len(pcm) / OUT_RATE))
+                for pcm in phonon_chunks(text):
+                    if gen != st["gen"]:
+                        break
+                    if len(pcm):
+                        pcms.put((gen, pcm.astype("<f4").tobytes(), len(pcm) / OUT_RATE))
         except Exception:
             pass
         st["busy"] = False
@@ -286,7 +303,7 @@ def to_file(c, f, path):
     try:
         text = f.read()
         with tts_lock:
-            pcm = tts(text)
+            pcm = phonon_pcm(text)
         soundfile.write(path, pcm, OUT_RATE)
         c.sendall(b"ok")
     except Exception:
@@ -296,10 +313,6 @@ def to_file(c, f, path):
 
 
 def serve():
-    global tts
-    from paradee_tts import Paradee
-
-    tts = Paradee()
     try:
         send("ping\n")
         sys.exit()  # another server already owns the socket
@@ -325,8 +338,8 @@ def serve():
                 threading.Thread(target=session or to_file, args=args, daemon=True).start()
                 continue
             text = f.read().strip()
-            if cmd == "q":
-                texts.put((st["gen"], text))
+            if cmd in ("q", "qp"):
+                texts.put((st["gen"], text, cmd))
             elif cmd == "stop":
                 stop_audio()
             elif cmd == "status":
@@ -360,6 +373,5 @@ except OSError:
     # first call: start the warm server for next time, speak this one cold
     subprocess.Popen([sys.executable, __file__, "--serve"], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     import soundfile
-    from paradee_tts import Paradee
 
-    soundfile.write(wav, Paradee()(text), OUT_RATE)
+    soundfile.write(wav, phonon_pcm(text), OUT_RATE)

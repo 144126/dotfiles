@@ -10,6 +10,14 @@ if [ ! -f "$BEEP_WAV" ]; then
   sox -n "$BEEP_WAV" synth 0.32 sine 660 vol 0.10 fade 0.05 0.22 0.06 2>/dev/null || true
 fi
 
+start_flash() {
+  pgrep -x battery-flash >/dev/null 2>&1 || setsid "$HOME/.local/bin/battery-flash" >/dev/null 2>&1 &
+}
+
+stop_flash() {
+  pkill -x battery-flash 2>/dev/null || true
+}
+
 stop_beep() {
   if [ -f "$BEEP_PID" ]; then
     pid=$(cat "$BEEP_PID" 2>/dev/null)
@@ -51,8 +59,8 @@ start_beep() {
 }
 
 case "$STATUS" in
-  Charging|Full) stop_beep ;;
-  *) if [ "$CAP" -lt 27 ]; then start_beep; else stop_beep; fi ;;
+  Charging|Full) stop_beep; stop_flash ;;
+  *) if [ "$CAP" -lt 27 ]; then start_beep; start_flash; else stop_beep; stop_flash; fi ;;
 esac
 
 LAST=$(cat "$CACHE" 2>/dev/null)

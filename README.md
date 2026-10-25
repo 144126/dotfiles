@@ -88,3 +88,11 @@ Bar will be identical: `Mod4+d` → `combined-menu` (desktop apps + commands.txt
 - `foot/foot.ini`: `[url] osc8-underline=always, launch=xdg-open`
 
 Test: `printf '\033]8;;https://example.com\033\\CLICK ME\033]8;;\033\\\n'` → `Ctrl+Click`
+
+## Claude voice
+
+- `Super+Ctrl+z` starts or ends the Claude voice session.
+- `Super+z` mutes or unmutes it. When Claude is off, `Super+z` mutes Gemini Live instead.
+- The Claude session starts on the first `Super+Ctrl+z` after boot and lasts until reboot.
+- Code: `claude-voice/daemon.mjs`, `bin/claude-voice`, `bin/mod-z`.
+- State: `~/.local/state/claude-voice`.

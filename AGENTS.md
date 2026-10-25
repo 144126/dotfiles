@@ -4,6 +4,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 # Rules
 - **Reply in at most 3 lines**, each thought on its own line. Plain simple english. Keep exact numbers, paths, commands, errors.
 - **Necessity:** not needed, or not likely needed → don't do it. Every file, line, word, tool call, question. Speed first. Never skip a safety check on destructive acts; never leave asked work unfinished.
+- **Speed vs efficiency:** the fastest option wins by default. Compare the two gains as ratios (how many times faster vs how many times less CPU, memory, tokens, bytes or money). Efficiency wins only when its ratio is substantially bigger than the speed ratio; speed wins ties and any case where it is the bigger gain.
 - **Critique:** always critique your initial idea by proving to yourself why it is stupid. Do this in a loop until your strongest attack finds no concrete way it fails the goal and no clearly better option. If you circle back to an earlier version, keep the best one and stop.
 - "dtjd" = don't think, just do.
 - No yes needed to edit files. Yes needed for destructive git, migrations, irreversible remote acts.
@@ -18,6 +19,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
   - Prefer pnpm/uv shared stores and `--no-cache`/ephemeral runs; no second copies of anything.
   - Report the freed or added size in the reply when it exceeds 50 MB.
 - Learn forward: write each trap+fix+command into its skill (`~/.agents/skills/*/SKILL.md`, minimal) or here. `~/.agents` is public: no secrets.
+- Install trap: `exec_command` can reject an inline `rm -rf` rollback; preflight a new destination and omit destructive cleanup from the install pipeline.
 - Plan named with no context: read `~/.agents/skills/plan/SKILL.md`, run `plan <name>` until `0`.
 - UI work, any project: follow `~/.agents/skills/ui-ux/SKILL.md` and pass `foundations.md` there.
 - Creative work: `~/.agents/skills/creative/SKILL.md` (+ video-edit, sound-design, graphic-design).
@@ -30,6 +32,8 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Music: only `yue2` skill.
 - `orc` = Opus 5.5 max orchestrating Haiku 5.5 workers (`~/.claude/orc.md`, agents `worker` + `Explore`). Claude's default for every task: `# Orchestrate` in `~/.claude/CLAUDE.md`. Traps: a subagent with no `effort` inherits max; `CLAUDE_CODE_EFFORT_LEVEL=max` forces max on every worker; built-in Explore ignores `CLAUDE_CODE_SUBAGENT_MODEL`. Why: `~/search/opus55-haiku55-orchestration-root.md`.
 - Pin Claude chats: `! pin` in a chat toggles it; `pin` in a terminal lists pins and resumes one. Native pin (`claude agents`, ctrl+t) covers background sessions only. Claude deletes transcripts idle 30 days (`cleanupPeriodDays`, by mtime); pins are hardlinks in `~/.local/share/claude-pins`, so they survive.
+- New Claude session in a tmux window in foot: `cwin <name> [claude args...]`, e.g. `cwin taste --model claude-haiku-5-5 --effort xhigh "update tasteskill to v2.1"`. Name = one short word for the job, never the model or effort. Never `tmux send-keys` a command into a fresh window: it races the shell and gets lost.
+- Claude voice: `claude-voice toggle` (Super+Ctrl+z) opens a `voice` window via `cwin`; mic → Whistle → typed in, replies → spoken by Phonon q8 through the voice daemon (`/tmp/voice.sock`, `dotfiles/voice/voice.py`, venv `~/.venvs/voice`: `q` and `qp` both Phonon); Super+z (`mod-z`) mutes. Voice choice: `speak()` in `dotfiles/bin/claude-voice`.
 
 # Commits
 Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period>`, blank line, body at 72 (what+why, `- ` bullets), trailers last. Body required for breaking, security, migration, revert.
@@ -53,3 +57,5 @@ Nap (main agent only): when a memo command prints `Run: ~/.optmem/memo nap <lo>-
 - Spotify/SoundCloud can yield 30s previews: verify `ffprobe -v error -show_entries format=duration <file>` before beat analysis; use the full local song when YouTube returns HTTP 403.
 - System Python has NumPy/Pillow but no SciPy: drum analysis can use NumPy FFT; `python /home/ed/videos/storm/analyze.py`.
 - Browser folder URLs need a loopback filesystem bridge, not `showDirectoryPicker` alone; hitcut opens `http://127.0.0.1:8009/?path=/absolute/folder`. Guard realpath targets and origins; never overwrite existing audio.
+- Waydroid init re-downloads images with `cache=False`; predownloaded archives are deleted. Verify SHA-256, extract into `/var/lib/waydroid/images`, symlink `/etc/waydroid-extra/images` there, then `sudo waydroid init` (no second image copies).
+- Waiting for root processes: use `ps -p <pid>`; unprivileged `kill -0` returns EPERM and can falsely report completion.
