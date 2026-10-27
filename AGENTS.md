@@ -34,6 +34,7 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Pin Claude chats: `! pin` in a chat toggles it; `pin` in a terminal lists pins and resumes one. Native pin (`claude agents`, ctrl+t) covers background sessions only. Claude deletes transcripts idle 30 days (`cleanupPeriodDays`, by mtime); pins are hardlinks in `~/.local/share/claude-pins`, so they survive.
 - New Claude session in a tmux window in foot: `cwin <name> [claude args...]`, e.g. `cwin taste --model claude-haiku-5-5 --effort xhigh "update tasteskill to v2.1"`. Name = one short word for the job, never the model or effort. Never `tmux send-keys` a command into a fresh window: it races the shell and gets lost.
 - Claude voice: `claude-voice toggle` (Super+Ctrl+z) opens a `voice` window via `cwin`; mic → Whistle → typed in, replies → spoken by Phonon q8 through the voice daemon (`/tmp/voice.sock`, `dotfiles/voice/voice.py`, venv `~/.venvs/voice`: `q` and `qp` both Phonon); Super+z (`mod-z`) mutes. Voice choice: `speak()` in `dotfiles/bin/claude-voice`.
+- Samsung adb (A07 SM-A075F, serial R83Y81BGJSJ): Auto Blocker blocks USB debug (Settings > Security and privacy > Auto Blocker off); udev rule `/etc/udev/rules.d/51-android-samsung.rules` (vendor 04e8). Offline test: `adb shell cmd connectivity airplane-mode enable`, then `disable` to restore.
 
 # Commits
 Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period>`, blank line, body at 72 (what+why, `- ` bullets), trailers last. Body required for breaking, security, migration, revert.
