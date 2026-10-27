@@ -55,7 +55,7 @@ Nap (main agent only): when a memo command prints `Run: ~/.optmem/memo nap <lo>-
 
 # Media traps
 - Spotify/SoundCloud can yield 30s previews: verify `ffprobe -v error -show_entries format=duration <file>` before beat analysis; use the full local song when YouTube returns HTTP 403.
-- System Python has NumPy/Pillow but no SciPy: drum analysis can use NumPy FFT; `python /home/ed/videos/storm/analyze.py`.
+- System python3 has no NumPy, Pillow or SciPy (checked 2026-10-27): drum analysis needs a venv with NumPy (`python /home/ed/videos/storm/analyze.py`); tile or crop images with ffmpeg.
 - Browser folder URLs need a loopback filesystem bridge, not `showDirectoryPicker` alone; hitcut opens `http://127.0.0.1:8009/?path=/absolute/folder`. Guard realpath targets and origins; never overwrite existing audio.
 - Waydroid init re-downloads images with `cache=False`; predownloaded archives are deleted. Verify SHA-256, extract into `/var/lib/waydroid/images`, symlink `/etc/waydroid-extra/images` there, then `sudo waydroid init` (no second image copies).
 - Waiting for root processes: use `ps -p <pid>`; unprivileged `kill -0` returns EPERM and can falsely report completion.
