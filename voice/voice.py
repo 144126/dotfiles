@@ -10,6 +10,7 @@ TOKEN = os.environ.get("WHISTLE_TOKEN") or (open(TOKEN_FILE).read().strip() if o
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
 SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 1.0)
 OUT_RATE = 24000
+GAIN = 2  # Phonon peaks at 0.42-0.45, so this lands just under full scale
 FRAME = 512  # Silero's window: 32 ms at 16 kHz
 FRAME_S = FRAME / 16000
 
@@ -51,7 +52,8 @@ def phonon_chunks(text):
 
         phonon = ptts.TTS(lang="en", quant="q8")
     with phonon.stream(text) as audio:
-        yield from audio
+        for pcm in audio:
+            yield pcm * GAIN
 
 
 def phonon_pcm(text):
