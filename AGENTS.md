@@ -22,7 +22,6 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Install trap: `exec_command` can reject an inline `rm -rf` rollback; preflight a new destination and omit destructive cleanup from the install pipeline.
 - Plan named with no context: read `~/.agents/skills/plan/SKILL.md`, run `plan <name>` until `0`.
 - UI work, any project: follow `~/.agents/skills/ui-ux/SKILL.md` and pass `foundations.md` there.
-- Default spawned Codex subagents to `gpt-6-luna` at `medium` reasoning effort unless the task explicitly asks for another model or effort.
 - Creative work: `~/.agents/skills/creative/SKILL.md` (+ video-edit, sound-design, graphic-design).
 - Charts and diagrams: use Ondine (Mermaid-compatible, Rust, 0 deps). Source: https://x.com/_jxom/status/2112320010081501186 · https://ondine.sh
 
