@@ -13,8 +13,6 @@ Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, pers
 - Cleanup: delete permanently (`rm`). Never move files to Trash.
 - **STORAGE (strict, beats every other rule here):** disk is precious; treat every byte as expensive.
   - Never save, download, install, clone, cache, render or generate to disk anything that is not strictly needed. If it can be streamed, piped, kept in memory or re-fetched, do that instead.
-  - Before ANY save of a new file, download, install, clone, build, render, model, venv, node_modules or cache: ask Ed first and show the impact: exact path, size in MB/GB, `df -h /` free space now and after, and whether it can be regenerated. No answer = don't save. This overrides "no yes needed to edit files" for anything that adds new data.
-  - Storage involving code is approved, including creating, editing, and deleting source, tests, documentation, and config files, cloning GitHub repositories, and downloading or fetching code. Other installs, dependencies, builds, generated assets, and caches still require approval.
   - Delete what may be even slightly unneeded as soon as the task is done: temp files, outputs, test renders, logs, build dirs, downloaded archives, venvs for one-off scripts. Use the scratchpad for temps and `rm` them after.
   - Prefer pnpm/uv shared stores and `--no-cache`/ephemeral runs; no second copies of anything.
   - Report the freed or added size in the reply when it exceeds 50 MB.
