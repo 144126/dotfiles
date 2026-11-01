@@ -19,6 +19,7 @@ exec swayidle -w timeout 144 ~/.local/bin/sway-blank
 exec sway-audio-idle-inhibit --ignore-source-outputs Lavf60.16.101
 
 exec mako
+exec env PATH=/home/ed/.grok/bin:/home/ed/.local/bin:/home/ed/.cargo/bin:/usr/bin:/bin node /home/ed/i/zen/zen.ts
 exec CopyQ
 exec wl-paste --watch cliphist store
 exec_always dbus-update-activation-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP QT_QPA_PLATFORM
