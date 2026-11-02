@@ -169,7 +169,7 @@ text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
 # trailing space so back-to-back dictations don't glue words together
 old=$(wl-paste -n -t text 2>/dev/null) && had_text=1
-printf '%s ' "$text" | wl-copy
+printf '%s ' "$text" | wl-copy 7>&-
 sleep 0.2
 app=$(swaymsg -t get_tree | jq -r '.. | select(.focused? == true) | .app_id // empty')
 # foot pastes on Ctrl+Shift+V, not Ctrl+V
@@ -178,5 +178,5 @@ foot*) wtype -M ctrl -M shift -k v -m shift -m ctrl ;;
 *) wtype -M ctrl -k v -m ctrl ;;
 esac
 sleep 0.3
-[ -n "$had_text" ] && printf %s "$old" | wl-copy
+[ -n "$had_text" ] && printf %s "$old" | wl-copy 7>&-
 notify "${text:0:80}"
