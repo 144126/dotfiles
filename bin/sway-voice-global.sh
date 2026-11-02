@@ -140,18 +140,30 @@ fi
 rm -rf "$stk"
 
 if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
-# the server handles one request at a time, so queued jobs finish and paste in the order they stopped
-auth=()
-[ -f "$TOKEN" ] && auth=(-H "Authorization: Bearer $(cat "$TOKEN")")
-for try in 1 2 3; do
-  text=$(curl -sSf -m 1620 "${auth[@]}" --data-binary @"$job" "$URL" 2>>"$LOG") && break
-  if [ $try = 3 ]; then
-    keep=~/voice-failed/$(date +%F-%H%M%S).wav
-    mkdir -p ~/voice-failed; mv "$job" "$keep"
-    notify "transcription failed — audio kept at $keep"; exit
-  fi
-  sleep 3
-done
+# OpenRouter first (about $0.002/min); local Whistle when the key is missing or the API fails
+OR_KEY=${OPENROUTER_API_KEY:-$(cat ~/.config/openrouter.token 2>/dev/null)}
+or_text() {
+  [ -n "$OR_KEY" ] || return 1
+  base64 -w0 "$1" | jq -cRn '{model:"nvidia/nemotron-3.5-transcribe",input_audio:{data:input,format:"wav"},temperature:0}' |
+    curl -sSf -m 120 https://openrouter.ai/api/v1/audio/transcriptions -H "Authorization: Bearer $OR_KEY" -H 'Content-Type: application/json' --data-binary @- 2>>"$LOG" |
+    jq -er '.text | select(length > 0)' 2>>"$LOG"
+}
+text=$(or_text "$job")
+if [ -z "$text" ]; then
+  log "openrouter failed, using local whistle"
+  # the server handles one request at a time, so queued jobs finish and paste in the order they stopped
+  auth=()
+  [ -f "$TOKEN" ] && auth=(-H "Authorization: Bearer $(cat "$TOKEN")")
+  for try in 1 2 3; do
+    text=$(curl -sSf -m 1620 "${auth[@]}" --data-binary @"$job" "$URL" 2>>"$LOG") && break
+    if [ $try = 3 ]; then
+      keep=~/voice-failed/$(date +%F-%H%M%S).wav
+      mkdir -p ~/voice-failed; mv "$job" "$keep"
+      notify "transcription failed — audio kept at $keep"; exit
+    fi
+    sleep 3
+  done
+fi
 text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 [ -z "$text" ] && { notify "no speech detected"; exit; }
 
