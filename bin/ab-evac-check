@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Print "<site> ok|no" for each EVAC login in the silent evac Chrome; exit 1 if any is no.
+set -uo pipefail
+env_file="$HOME/.config/evac/accounts.env"
+val() { sed -n "s/^$1=//p" "$env_file" 2>/dev/null; }
+x_user=$(val EVAC_X_USER) ig_user=$(val EVAC_IG_USER) g_email=$(val EVAC_GOOGLE_EMAIL)
+ab() { timeout 60 ab-evac --session evaccheck "$@" 2>/dev/null; }
+# polls up to 15 s because these apps render after load
+poll() { printf 'new Promise(r=>{let n=0;const f=async()=>{let v=false;try{v=await (%s)}catch{}if(v||++n>30)return r(!!v);setTimeout(f,500)};f()})' "$1"; }
+check() {
+	[ -n "$3" ] || { echo "$1 no"; return 1; }
+	ab tab new "$2" >/dev/null
+	local r; r=$(ab eval "$(poll "$4")")
+	ab tab close >/dev/null
+	[ "$r" = true ] && echo "$1 ok" || { echo "$1 no"; return 1; }
+}
+sites=("$@"); [ ${#sites[@]} -eq 0 ] && sites=(x instagram threads google youtube)
+fail=0
+for s in "${sites[@]}"; do
+	case $s in
+		x) check x https://x.com/home "$x_user" "!!document.querySelector('[data-testid=\"UserAvatar-Container-$x_user\"]')" ;;
+		instagram) check instagram https://www.instagram.com/ "$ig_user" "fetch('/api/v1/accounts/current_user/?edit=true',{headers:{'x-ig-app-id':'936619743392459'}}).then(r=>r.json()).then(j=>j.user&&j.user.username==='$ig_user')" ;;
+		threads) check threads https://www.threads.com/ "$ig_user" "!!document.querySelector('a[href=\"/@$ig_user\"]')" ;;
+		google) check google https://accounts.google.com/SignOutOptions "$g_email" "document.body.innerText.includes('$g_email')" ;;
+		youtube) check youtube https://www.youtube.com/channel_switcher "$g_email" "/evac/i.test(document.body.innerText)" ;;
+		*) echo "$s no"; false ;;
+	esac || fail=1
+done
+exit $fail
