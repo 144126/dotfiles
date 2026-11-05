@@ -4,6 +4,7 @@ import numpy as np
 
 SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
+PHONON = os.path.expanduser("~/models/phonon-31m-en-small")  # 43 MB build from shrink_phonon.py; the 64.5 MB Hub q8 when missing
 STT_URL = os.environ.get("PI_VOICE_URL", "http://127.0.0.1:8081/")
 TOKEN_FILE = os.path.expanduser("~/.config/jot-stt.token")
 TOKEN = os.environ.get("WHISTLE_TOKEN") or (open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else "")
@@ -45,12 +46,12 @@ def playing():
 
 
 def phonon_chunks(text):
-    # Phonon (gradium/phonon-31m-en, q8) streams 80 ms chunks, so speech starts in ~0.3 s; loaded on first use
+    # Phonon 31m streams 80 ms chunks, so speech starts in ~0.3 s; loaded on first use
     global phonon
     if not phonon:
         import ptts
 
-        phonon = ptts.TTS(lang="en", quant="q8")
+        phonon = ptts.TTS(model=PHONON if os.path.isdir(PHONON) else None, lang="en", quant="q8")
     with phonon.stream(text) as audio:
         for pcm in audio:
             yield pcm * GAIN
