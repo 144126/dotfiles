@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Drive the silent headless EVAC Chrome on 9225. Starts it if needed.
+set -euo pipefail
+export TMPDIR="${TMPDIR:-$HOME/.cache/abtmp}"
+mkdir -p "$TMPDIR" /tmp/ab-evac
+if ! curl -sf --max-time 1 http://127.0.0.1:9225/json/version >/dev/null; then
+  nohup /usr/bin/google-chrome-stable \
+    --headless=new \
+    --user-data-dir="$HOME/.config/chrome-evac" \
+    --profile-directory=Default \
+    --password-store=basic \
+    --disk-cache-size=9437184 \
+    --remote-debugging-port=9225 \
+    --remote-debugging-address=127.0.0.1 \
+    --remote-allow-origins=* \
+    --no-first-run \
+    --disable-gpu \
+    --user-agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$(/usr/bin/google-chrome-stable --version | grep -o '[0-9]*' | head -1).0.0.0 Safari/537.36" \
+    about:blank >>/tmp/ab-evac/headless.log 2>&1 &
+  echo $! >/tmp/ab-evac/headless.pid
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -sf --max-time 1 http://127.0.0.1:9225/json/version >/dev/null && break
+    sleep 0.3
+  done
+fi
+export AGENT_BROWSER_IDLE_TIMEOUT_MS=900000
+exec agent-browser --session abevac --cdp 9225 --headed false --auto-connect false "$@"
