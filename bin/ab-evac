@@ -10,6 +10,8 @@ if ! curl -sf --max-time 1 http://127.0.0.1:9225/json/version >/dev/null; then
     --profile-directory=Default \
     --password-store=basic \
     --disk-cache-size=9437184 \
+    --disable-component-update \
+    --disable-features=OptimizationGuideModelDownloading,OptimizationHintsFetching \
     --remote-debugging-port=9225 \
     --remote-debugging-address=127.0.0.1 \
     --remote-allow-origins=* \
