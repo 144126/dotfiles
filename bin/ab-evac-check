@@ -10,7 +10,8 @@ poll() { printf 'new Promise(r=>{let n=0;const f=async()=>{let v=false;try{v=awa
 check() {
 	[ -n "$3" ] || { echo "$1 no"; return 1; }
 	ab tab new "$2" >/dev/null
-	local r; r=$(ab eval "$(poll "$4")")
+	# redirects right after load destroy the eval context, so retry
+	local r i; for i in 1 2 3; do r=$(ab eval "$(poll "$4")") && break; sleep 2; done
 	ab tab close >/dev/null
 	[ "$r" = true ] && echo "$1 ok" || { echo "$1 no"; return 1; }
 }
