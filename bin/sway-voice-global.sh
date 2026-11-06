@@ -143,7 +143,7 @@ if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
 # OpenRouter first (about $0.002/min); local Whistle when the key is missing or the API fails
 or_text() {
   [ -n "$OPENROUTER_API_KEY" ] || return 1
-  base64 -w0 "$1" | jq -cRn '{model:"nvidia/nemotron-3.5-transcribe",input_audio:{data:input,format:"wav"},temperature:0}' |
+  base64 -w0 "$1" | jq -cRn '{model:"moondream/parakeet-ultra",input_audio:{data:input,format:"wav"},temperature:0}' |
     curl -sSf -m 120 https://openrouter.ai/api/v1/audio/transcriptions -H "Authorization: Bearer $OPENROUTER_API_KEY" -H 'Content-Type: application/json' --data-binary @- 2>>"$LOG" |
     jq -er '.text | select(length > 0)' 2>>"$LOG"
 }
