@@ -8,6 +8,8 @@ URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
 GRACE_MS="${PI_VOICE_STOP_GRACE_MS:-1500}"
 LOG="$D/log"
 TOKEN=~/.config/jot-stt.token
+# sway keeps the env from login; the file always has the current key
+[ -r ~/.config/openrouter.key ] && OPENROUTER_API_KEY=$(cat ~/.config/openrouter.key)
 mkdir -p "$D"
 
 log() { echo "[$(date -Iseconds)] $*" >> "$LOG"; }
