@@ -4,12 +4,8 @@
 # when done, so a new recording can start while older ones transcribe.
 # Args: status (waybar json), cancel (drop the current recording), mute (toggle).
 D="${XDG_RUNTIME_DIR:-/tmp}/voice"
-URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
 GRACE_MS="${PI_VOICE_STOP_GRACE_MS:-1500}"
 LOG="$D/log"
-TOKEN=~/.config/jot-stt.token
-# sway keeps the env from login; the file always has the current key
-[ -r ~/.config/openrouter.key ] && OPENROUTER_API_KEY=$(cat ~/.config/openrouter.key)
 mkdir -p "$D"
 
 log() { echo "[$(date -Iseconds)] $*" >> "$LOG"; }
@@ -142,32 +138,10 @@ fi
 rm -rf "$stk"
 
 if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
-# OpenRouter first (about $0.002/min); local Whistle when the key is missing or the API fails
-or_text() {
-  [ -n "$OPENROUTER_API_KEY" ] || return 1
-  base64 -w0 "$1" | jq -cRn '{model:"moondream/parakeet-ultra",input_audio:{data:input,format:"wav"},temperature:0}' |
-    curl -sSf -m 120 https://openrouter.ai/api/v1/audio/transcriptions -H "Authorization: Bearer $OPENROUTER_API_KEY" -H 'Content-Type: application/json' --data-binary @- 2>>"$LOG" |
-    jq -er '.text | select(length > 0)' 2>>"$LOG"
-}
 # one transcribe+paste at a time, so jobs paste in stop order as before
 exec 7>"$D/transcribe.lock"; flock 7
-text=$(or_text "$job")
-if [ -z "$text" ]; then
-  log "openrouter failed, using local whistle"
-  auth=()
-  [ -f "$TOKEN" ] && auth=(-H "Authorization: Bearer $(cat "$TOKEN")")
-  for try in 1 2 3; do
-    text=$(curl -sSf -m 1620 "${auth[@]}" --data-binary @"$job" "$URL" 2>>"$LOG") && break
-    if [ $try = 3 ]; then
-      keep=~/voice-failed/$(date +%F-%H%M%S).wav
-      mkdir -p ~/voice-failed; mv "$job" "$keep"
-      notify "transcription failed — audio kept at $keep"; exit
-    fi
-    sleep 3
-  done
-fi
-text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-[ -z "$text" ] && { notify "no speech detected"; exit; }
+# the shared speech-to-text (openrouter, then whistle); pi-voice sends the same text to pi
+text=$(~/.local/bin/voice-text "$job") || exit
 
 # trailing space so back-to-back dictations don't glue words together
 old=$(wl-paste -n -t text 2>/dev/null) && had_text=1

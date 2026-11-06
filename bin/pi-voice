@@ -1,0 +1,271 @@
+#!/usr/bin/env node
+// pi-voice toggle: Super+Ctrl+z. Press to talk, press again to send.
+// Mic -> voice-text (the same speech-to-text Mod+Ctrl+E pastes) -> the fixed pi session below, in a "pi-voice"
+// tmux window (opened in foot on first use) -> pi's replies spoken by Phonon through the voice daemon (/tmp/voice.sock).
+// Nothing keeps state between presses except the session id: any window, any process, same conversation.
+import net from "node:net";
+import fs from "node:fs";
+import os from "node:os";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+
+const H = os.homedir();
+const D = `${H}/.local/state/pi-voice`;
+const SOCK = "/tmp/voice.sock";
+const WIN = "pi-voice"; // fixed tmux window name: the one place we look for, and create
+const SESSION = "01a1ad9f-7000-7000-8000-00000000f001"; // fixed pi session id: every press continues this one chat
+const MODEL = "openrouter/~deepseek/deepseek-v4-flash-latest";
+const PROMPT = "Voice conversation: the user speaks, your replies are read aloud. Keep replies short and spoken, no markdown, lists, tables or code unless asked. Do the work with tools, then say the result in a sentence or two.";
+const WAV = `${D}/rec.wav`;
+const PY = `${H}/.venvs/voice/bin/python`;
+const VOICE = `${H}/i/144126/dotfiles/voice/voice.py`;
+const SESSIONS = `${H}/.pi/agent/sessions`;
+fs.mkdirSync(D, { recursive: true });
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const notify = (t) => spawn("notify-send", ["-t", "2500", "pi voice", t]).unref();
+const status = (t) => fs.writeFileSync(`${D}/status.txt`, t);
+const tmux = (...a) => execFileSync("tmux", a, { encoding: "utf8" }).trim();
+const alive = (p) => {
+  try {
+    process.kill(p, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+const pid = (f) => {
+  try {
+    const p = +fs.readFileSync(`${D}/${f}`, "utf8");
+    return alive(p) ? p : 0;
+  } catch {
+    return 0;
+  }
+};
+
+// one short request to the voice daemon, e.g. "q\n<text>" speaks, "stop\n" stops
+const sock = (msg) =>
+  new Promise((ok) => {
+    const c = net.connect(SOCK, () => c.end(msg));
+    c.on("error", () => ok(false));
+    c.on("close", () => ok(true));
+  });
+
+// "qp" = Phonon, streamed; a muted flag file silences the spoken replies
+const speak = (text) => (fs.existsSync(`${D}/muted`) ? Promise.resolve(true) : sock(`qp\n${text}`));
+
+async function voice_daemon() {
+  if (await sock("ping\n")) return true;
+  spawn(PY, [VOICE, "--serve"], { detached: true, stdio: "ignore", env: { ...process.env, HF_HUB_OFFLINE: "1" } }).unref();
+  for (let i = 0; i < 120; i++) {
+    await sleep(500);
+    if (await sock("ping\n")) return true;
+  }
+  return false;
+}
+
+const recording = () => {
+  try {
+    const [p, t] = fs.readFileSync(`${D}/rec`, "utf8").split(" ");
+    return alive(+p) ? { pid: +p, start: +t } : null;
+  } catch {
+    return null;
+  }
+};
+
+function start() {
+  fs.rmSync(WAV, { force: true });
+  const p = spawn("sox", ["-q", "-d", "-r", "16000", "-c", "1", "-b", "16", WAV, "silence", "1", "0.1", "1%"], {
+    detached: true,
+    stdio: "ignore",
+  });
+  p.unref();
+  fs.writeFileSync(`${D}/rec`, `${p.pid} ${Math.floor(Date.now() / 1000)}`);
+  status("pi ●");
+  notify("listening");
+}
+
+async function stop() {
+  const r = recording();
+  fs.rmSync(`${D}/rec`, { force: true });
+  if (!r) return;
+  process.kill(r.pid, "SIGINT");
+  for (let i = 0; i < 20 && alive(r.pid); i++) await sleep(150);
+  if (alive(r.pid)) process.kill(r.pid, "SIGKILL");
+  const size = fs.existsSync(WAV) ? fs.statSync(WAV).size : 0;
+  if (size <= 44) {
+    status("");
+    return notify("no speech detected");
+  }
+  status("pi …");
+  const r2 = spawnSync(`${H}/.local/bin/voice-text`, [WAV], { encoding: "utf8", timeout: 1800 * 1000 });
+  const text = (r2.stdout ?? "").trim();
+  fs.rmSync(WAV, { force: true });
+  if (!text) {
+    status("");
+    return;
+  }
+  notify(text.slice(0, 80));
+  deliver(text);
+}
+
+// the pi session's transcript, wherever pi put it
+function transcript() {
+  let dirs = [];
+  try {
+    dirs = fs.readdirSync(SESSIONS).filter((d) => d.startsWith("--home-ed"));
+  } catch {
+    return "";
+  }
+  for (const d of dirs) {
+    let names = [];
+    try {
+      names = fs.readdirSync(`${SESSIONS}/${d}`);
+    } catch {
+      continue;
+    }
+    const hit = names.filter((n) => n.endsWith(`${SESSION}.jsonl`)).sort().pop();
+    if (hit) return `${SESSIONS}/${d}/${hit}`;
+  }
+  return "";
+}
+
+function pane() {
+  let out = "";
+  try {
+    out = tmux("list-panes", "-a", "-F", "#{pane_id} #{window_name}");
+  } catch {
+    return "";
+  }
+  for (const l of out.split("\n")) {
+    const [id, name] = l.split(" ");
+    if (name === WIN) return id;
+  }
+  return "";
+}
+
+const pane_cmd = (p) => {
+  try {
+    return tmux("display", "-p", "-t", p, "#{pane_current_command}");
+  } catch {
+    return "";
+  }
+};
+
+const pi_args = ["--session-id", SESSION, "--model", MODEL, "--append-system-prompt", PROMPT];
+
+// the one window we talk to: reuse the live one, else (re)open it via cwin and wait for pi to be up
+async function window() {
+  let p = pane();
+  if (p && !/^(pi|node)$/.test(pane_cmd(p))) {
+    try {
+      tmux("kill-window", "-t", p);
+    } catch {}
+    p = "";
+  }
+  if (!p) {
+    try {
+      p = execFileSync("cwin", [WIN, ...pi_args], { encoding: "utf8", env: { ...process.env, CWIN_CMD: "pi" } }).trim();
+    } catch {
+      return "";
+    }
+  }
+  for (let i = 0; i < 60; i++) {
+    if (/^(pi|node)$/.test(pane_cmd(p))) {
+      await sleep(1000); // let the TUI take the keyboard
+      return p;
+    }
+    await sleep(500);
+  }
+  return p;
+}
+
+function deliver(text) {
+  window().then((p) => {
+    if (!p) {
+      status("");
+      return notify("could not open the pi-voice window");
+    }
+    tmux("send-keys", "-t", p, "-l", text.replace(/\s*\n\s*/g, " "));
+    tmux("send-keys", "-t", p, "Enter");
+    status("pi …");
+    if (!pid("speak.pid")) spawn(process.argv[1], ["speak"], { detached: true, stdio: "ignore" }).unref();
+  });
+}
+
+// speaker: from wherever the transcript is now, say every new assistant text until the chat goes quiet
+async function tail_speak() {
+  fs.writeFileSync(`${D}/speak.pid`, String(process.pid));
+  const done = () => {
+    fs.rmSync(`${D}/speak.pid`, { force: true });
+    status("");
+    process.exit();
+  };
+  if (!(await voice_daemon())) return done();
+  let file = transcript();
+  let off = file && fs.existsSync(file) ? fs.statSync(file).size : 0;
+  let rest = "",
+    last = Date.now();
+  for (;;) {
+    await sleep(400);
+    file = transcript();
+    if (!file) {
+      if (Date.now() - last > 20000) return done();
+      continue;
+    }
+    let size = 0;
+    try {
+      size = fs.statSync(file).size;
+    } catch {
+      continue;
+    }
+    if (size < off) {
+      off = 0;
+      rest = "";
+    }
+    if (size <= off) {
+      if (Date.now() - last > 15 * 60 * 1000) return done();
+      continue;
+    }
+    const fd = fs.openSync(file, "r");
+    const buf = Buffer.alloc(size - off);
+    const n = fs.readSync(fd, buf, 0, buf.length, off);
+    fs.closeSync(fd);
+    off += n;
+    last = Date.now();
+    const lines = (rest + buf.subarray(0, n).toString()).split("\n");
+    rest = lines.pop();
+    for (const l of lines) {
+      let r;
+      try {
+        r = JSON.parse(l);
+      } catch {
+        continue;
+      }
+      if (r.type !== "message" || r.message?.role !== "assistant") continue;
+      for (const b of r.message.content ?? []) if (b.type === "text" && b.text.trim()) speak(b.text);
+    }
+  }
+}
+
+switch (process.argv[2]) {
+  case "toggle":
+    recording() ? stop() : start();
+    break;
+  case "speak":
+    tail_speak();
+    break;
+  case "send":
+    deliver(process.argv.slice(3).join(" "));
+    break;
+  case "mute": {
+    const on = !fs.existsSync(`${D}/muted`);
+    on ? fs.writeFileSync(`${D}/muted`, "") : fs.rmSync(`${D}/muted`, { force: true });
+    if (on) sock("stop\n");
+    notify(on ? "spoken replies muted" : "spoken replies on");
+    status(on ? "pi muted" : pid("speak.pid") ? "pi ●" : "");
+    break;
+  }
+  default:
+    console.error("pi-voice toggle|mute|send <text>");
+    process.exit(1);
+}

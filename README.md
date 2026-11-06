@@ -89,10 +89,11 @@ Bar will be identical: `Mod4+d` → `combined-menu` (desktop apps + commands.txt
 
 Test: `printf '\033]8;;https://example.com\033\\CLICK ME\033]8;;\033\\\n'` → `Ctrl+Click`
 
-## Claude voice
+## Pi voice
 
-- `Super+Ctrl+z` starts or ends the Claude voice session.
-- `Super+z` mutes or unmutes it. When Claude is off, `Super+z` mutes Gemini Live instead.
-- The Claude session starts on the first `Super+Ctrl+z` after boot and lasts until reboot.
-- Code: `claude-voice/daemon.mjs`, `bin/claude-voice`, `bin/mod-z`.
-- State: `~/.local/state/claude-voice`.
+- `Super+Ctrl+z` starts recording, press again to send: text goes into one fixed pi session (DeepSeek V4 flash) in a `pi-voice` tmux window, the reply is spoken.
+- Speech-to-text is `bin/voice-text`, also used by `Mod+Ctrl+E` dictation, so both always match.
+- `Super+z` mutes or unmutes the voice. When pi voice is off, `Super+z` mutes Gemini Live instead.
+- Code: `bin/pi-voice`, `bin/voice-text`, `bin/mod-z`, `bin/cwin`.
+- State: `~/.local/state/pi-voice`.
+

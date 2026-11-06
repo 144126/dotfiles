@@ -1,0 +1,41 @@
+#!/bin/bash
+# voice-text <wav>: the one speech-to-text of this machine. Text to stdout.
+# OpenRouter parakeet-ultra first (~$0.002/min), local Whistle (:8081) when the key is missing or the API fails.
+# Mod+Ctrl+E (sway-voice-global.sh) pastes this and pi-voice sends it to pi, so they can never diverge.
+LOG="${XDG_RUNTIME_DIR:-/tmp}/voice/log"
+URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
+TOKEN=~/.config/jot-stt.token
+[ -r ~/.config/openrouter.key ] && OPENROUTER_API_KEY=$(cat ~/.config/openrouter.key)
+mkdir -p "$(dirname "$LOG")"
+log() { echo "[$(date -Iseconds)] voice-text: $*" >>"$LOG"; }
+fail() { log "$*"; notify-send -t 3500 voice "$*"; exit 1; }
+
+wav=$1
+[ -s "$wav" ] || fail "no speech detected"
+[ "$(stat -c%s "$wav")" -gt 44 ] || fail "no speech detected"
+
+or_text() {
+  [ -n "$OPENROUTER_API_KEY" ] || return 1
+  base64 -w0 "$wav" | jq -cRn '{model:"moondream/parakeet-ultra",input_audio:{data:input,format:"wav"},temperature:0}' |
+    curl -sSf -m 120 https://openrouter.ai/api/v1/audio/transcriptions -H "Authorization: Bearer $OPENROUTER_API_KEY" -H 'Content-Type: application/json' --data-binary @- 2>>"$LOG" |
+    jq -er '.text | select(length > 0)' 2>>"$LOG"
+}
+
+text=$(or_text)
+if [ -z "$text" ]; then
+  log "openrouter failed, using local whistle"
+  auth=()
+  [ -f "$TOKEN" ] && auth=(-H "Authorization: Bearer $(cat "$TOKEN")")
+  for try in 1 2 3; do
+    text=$(curl -sSf -m 1620 "${auth[@]}" --data-binary @"$wav" "$URL" 2>>"$LOG") && break
+    if [ $try = 3 ]; then
+      keep=~/voice-failed/$(date +%F-%H%M%S).wav
+      mkdir -p ~/voice-failed; mv "$wav" "$keep"
+      fail "transcription failed — audio kept at $keep"
+    fi
+    sleep 3
+  done
+fi
+text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+[ -n "$text" ] || fail "no speech detected"
+printf '%s\n' "$text"
