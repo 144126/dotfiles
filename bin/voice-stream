@@ -9,6 +9,8 @@ import threading
 import time
 from pathlib import Path
 
+import regex
+
 os.environ.pop('LD_LIBRARY_PATH', None)
 lock = open(Path(os.environ['XDG_RUNTIME_DIR']) / 'voice-stream.lock', 'a+')
 state = Path(os.environ['XDG_RUNTIME_DIR']) / 'voice-stream.state'
@@ -56,8 +58,7 @@ try:
     target = focused()
     if target is None:
         raise RuntimeError('no focused window')
-    previous = ''
-    written = 0
+    written = ''
     clipboard = []
     diverted = False
     mutex = threading.RLock()
@@ -68,27 +69,29 @@ try:
             state.write_text('● voice → clipboard')
             notify(reason + ' · remaining speech goes to clipboard')
     def output(text, final=False):
-        global previous, written
+        global written
         with mutex:
             if focused() != target:
                 divert('window changed')
             if diverted:
                 if final:
-                    clipboard.append(' '.join(text.split()[written:]))
-                    previous, written = '', 0
+                    if written and not text.startswith(written):
+                        notify('clipboard contains the entire revised phrase; replace the last phrase')
+                    clipboard.append(text[len(written):] if text.startswith(written) else text)
+                    written = ''
                 return
-            if final:
-                stable = text
-            else:
-                common = os.path.commonprefix([previous, text])
-                stable = common[:common.rfind(' ') + 1]
-            previous = text
-            words = stable.split()
-            if len(words) > written:
-                subprocess.run(['wtype', '--', ' '.join(words[written:]) + ' '], check=True)
-                written = len(words)
-            if final:
-                previous, written = '', 0
+            old = regex.findall(r'\X', written)
+            new = regex.findall(r'\X', text)
+            common = 0
+            while common < min(len(old), len(new)) and old[common] == new[common]:
+                common += 1
+            keys = ['-k', 'BackSpace'] * (len(old) - common)
+            suffix = ''.join(new[common:])
+            if final and text and not text.endswith(' '):
+                suffix += ' '
+            if keys or suffix:
+                subprocess.run(['wtype', *keys, '--', suffix], check=True)
+            written = '' if final else text
     mic = MicTranscriber().language('en').on_text(output).on_line(lambda line: output(line.text, True)).on_error(lambda error: (notify(str(error)), stop.set()))
     mic.load()
     if not stop.is_set():
@@ -106,7 +109,7 @@ try:
         mic.stop()
     mic.close()
     if clipboard:
-        subprocess.run(['wl-copy'], input=' '.join(x.strip() for x in clipboard if x.strip()), text=True, check=True)
+        subprocess.run(['wl-copy'], input=''.join(x + (' ' if x and not x.endswith(' ') else '') for x in clipboard).rstrip(), text=True, check=True)
         notify('remaining speech copied')
     else:
         notify('voice stopped')
