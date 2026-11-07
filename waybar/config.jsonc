@@ -4,7 +4,7 @@
     "height": 24,
     "modules-left": ["sway/workspaces"],
     "modules-center": [],
-    "modules-right": ["custom/telegram", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/claude-voice", "custom/gemini", "clock"],
+    "modules-right": ["custom/telegram", "custom/voice-stream", "custom/voice", "tray", "keyboard-state", "custom/hp-db", "custom/display", "custom/speed", "custom/data", "network", "cpu", "memory", "temperature", "disk", "battery", "custom/claude-voice", "custom/gemini", "clock"],
     "custom/telegram": {
         "format": " tg ",
         "tooltip-format": "Open Telegram",
@@ -81,6 +81,14 @@
         "exec": "~/.local/bin/battery-notify.sh",
         "interval": 60,
         "hide-empty-text": true
+    },
+    "custom/voice-stream": {
+        "exec": "~/.local/bin/voice-stream status",
+        "return-type": "json",
+        "interval": 1,
+        "format": " {} ",
+        "hide-empty-text": true,
+        "on-click": "~/.local/bin/voice-stream"
     },
     "custom/voice": {
         "exec": "~/.local/bin/sway-voice-global.sh status",
