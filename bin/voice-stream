@@ -57,7 +57,7 @@ try:
     if target is None:
         raise RuntimeError('no focused window')
     previous = ''
-    written = ''
+    written = 0
     clipboard = []
     diverted = False
     mutex = threading.RLock()
@@ -72,12 +72,10 @@ try:
         with mutex:
             if focused() != target:
                 divert('window changed')
-            if not diverted and not text.startswith(written):
-                divert('earlier words changed; check the last phrase')
             if diverted:
                 if final:
-                    clipboard.append(text[len(written):] if text.startswith(written) else text)
-                    previous = written = ''
+                    clipboard.append(' '.join(text.split()[written:]))
+                    previous, written = '', 0
                 return
             if final:
                 stable = text
@@ -85,13 +83,12 @@ try:
                 common = os.path.commonprefix([previous, text])
                 stable = common[:common.rfind(' ') + 1]
             previous = text
-            if len(stable) > len(written):
-                subprocess.run(['wtype', '--', stable[len(written):]], check=True)
-                written = stable
+            words = stable.split()
+            if len(words) > written:
+                subprocess.run(['wtype', '--', ' '.join(words[written:]) + ' '], check=True)
+                written = len(words)
             if final:
-                if written and not written.endswith(' '):
-                    subprocess.run(['wtype', '--', ' '], check=True)
-                previous = written = ''
+                previous, written = '', 0
     mic = MicTranscriber().language('en').on_text(output).on_line(lambda line: output(line.text, True)).on_error(lambda error: (notify(str(error)), stop.set()))
     mic.load()
     if not stop.is_set():
