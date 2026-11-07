@@ -4,14 +4,13 @@ import numpy as np
 
 SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
-PHONON = os.path.expanduser("~/models/phonon-31m-en-small")  # 43 MB build from shrink_phonon.py; the 64.5 MB Hub q8 when missing
+LEOKANI = os.path.expanduser("~/models/leokani-tts-4.5M")
 STT_URL = os.environ.get("PI_VOICE_URL", "http://127.0.0.1:8081/")
 TOKEN_FILE = os.path.expanduser("~/.config/jot-stt.token")
 TOKEN = os.environ.get("WHISTLE_TOKEN") or (open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else "")
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
 SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 1.0)
 OUT_RATE = 24000
-GAIN = 2  # Phonon peaks at 0.42-0.45, so this lands just under full scale
 FRAME = 512  # Silero's window: 32 ms at 16 kHz
 FRAME_S = FRAME / 16000
 
@@ -19,7 +18,7 @@ lock = threading.Lock()
 tts_lock = threading.Lock()
 st = {"gen": 0, "out": None, "until": 0.0, "busy": False, "sink": None, "call": None}
 texts, pcms = queue.Queue(), queue.Queue()
-phonon = None
+leokani = None
 
 
 def end(p, now=False):
@@ -45,20 +44,21 @@ def playing():
     return st["busy"] or not texts.empty() or not pcms.empty() or time.time() < st["until"]
 
 
-def phonon_chunks(text):
-    # Phonon 31m streams 80 ms chunks, so speech starts in ~0.3 s; loaded on first use
-    global phonon
-    if not phonon:
-        import ptts
+def leokani_chunks(text):
+    global leokani
+    if LEOKANI not in sys.path:
+        sys.path.insert(0, LEOKANI)
+    import leokani_onnx
 
-        phonon = ptts.TTS(model=PHONON if os.path.isdir(PHONON) else None, lang="en", quant="q8")
-    with phonon.stream(text) as audio:
-        for pcm in audio:
-            yield pcm * GAIN
+    if leokani is None:
+        leokani = leokani_onnx.Leokani(LEOKANI, model="leokani-tts-int8.onnx", threads=1)
+    for chunk in leokani_onnx.chunks(leokani_onnx.clean(text)):
+        yield leokani.synthesize(chunk)
 
 
-def phonon_pcm(text):
-    return np.concatenate(list(phonon_chunks(text))) if text.strip() else np.zeros(0, dtype=np.float32)
+def leokani_pcm(text):
+    parts = list(leokani_chunks(text)) if text.strip() else []
+    return np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
 
 
 def synth():
@@ -69,7 +69,7 @@ def synth():
         st["busy"] = True
         try:
             with tts_lock:
-                for pcm in phonon_chunks(text):
+                for pcm in leokani_chunks(text):
                     if gen != st["gen"]:
                         break
                     if len(pcm):
@@ -306,7 +306,7 @@ def to_file(c, f, path):
     try:
         text = f.read()
         with tts_lock:
-            pcm = phonon_pcm(text)
+            pcm = leokani_pcm(text)
         soundfile.write(path, pcm, OUT_RATE)
         c.sendall(b"ok")
     except Exception:
@@ -377,4 +377,4 @@ except OSError:
     subprocess.Popen([sys.executable, __file__, "--serve"], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     import soundfile
 
-    soundfile.write(wav, phonon_pcm(text), OUT_RATE)
+    soundfile.write(wav, leokani_pcm(text), OUT_RATE)
