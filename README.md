@@ -11,7 +11,7 @@ Public configs to replicate sway, waybar, app launcher, foot, tmux, bluetooth an
 - `tmux/` → `~/.tmux.conf`
 - `ssh/` → `~/.ssh/config` (LocalForward 3000/3001/3690, RemoteForward 18082/18083, ControlMaster)
 - `bluetooth/` → `/etc/bluetooth/main.conf` (reference, default) + pipewire bluetooth via `libspa-bluetooth`
-- `bin/` → `~/.local/bin/` — `combined-menu` (appsearch: `j4-dmenu-desktop` + `commands.txt` → `wmenu -i -l 12`, `Mod4+d`), `battery-notify.sh`, `netspeed`, `datacount`, `sway-voice-global.sh`, `mako-focus-notification.sh`, `say` (TTS), `pisync` (Pi sync)
+- `bin/` → `~/.local/bin/` — `combined-menu` (appsearch: `.desktop` files + `commands.txt` → `wmenu -i -l 12`, `Mod4+d`), `battery-notify.sh`, `netspeed`, `datacount`, `sway-voice-global.sh`, `mako-focus-notification.sh`, `say` (TTS), `pisync` (Pi sync)
 - `AGENTS.md` → `~/AGENTS.md`, `ed.md` → `~/ed.md`, `me.md` → `~/me.md`, `pi/` → `~/.pi/agent/` (Pi TTS `|||`)
 
 All originals are `ln -sf ~/i/144126/dotfiles/...` so editing `~/.config/sway/config` edits the repo directly.
@@ -22,15 +22,9 @@ All originals are `ln -sf ~/i/144126/dotfiles/...` so editing `~/.config/sway/co
 xbps-install -S sway Waybar swaybg \
   wmenu mako foot foot-terminfo \
   wl-clipboard cliphist grim slurp flameshot wl-mirror \
-  light playerctl jq CopyQ \
+  light playerctl jq CopyQ inkscape \
   bluez libspa-bluetooth pipewire wireplumber \
   jq playerctl light
-```
-
-For appsearch to work: `wmenu` is the menu, `j4-dmenu-desktop` is used by `combined-menu` to index `/usr/share/applications` — install it:
-
-```bash
-xbps-install -S j4-dmenu-desktop wmenu
 ```
 
 Wallpaper: `~/pics/dreamy_nostalgic_720p.png` (used in `sway/config` `output "*" bg ... fill`) — copy `~/pics/` too.

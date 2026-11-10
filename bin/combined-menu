@@ -1,36 +1,19 @@
 #!/bin/bash
-# Combined launcher: desktop entries (via j4-dmenu-desktop) + custom commands.
+# Combined launcher: desktop entries (scanned each run) + custom commands.
 # Output is piped to wmenu; the selected line is executed.
 
 TERM=${TERM:-urxvt}
-CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/combined-menu.txt"
 CMDS="$HOME/.config/sway/commands.txt"
-mkdir -p "$(dirname "$CACHE")"
 
 # Use a delimiter that cannot legitimately appear in a desktop Name= value
 # (tab can, which previously corrupted the name<->file mapping).
 SEP=$'\x1f'
 
-# Map of desktop label -> desktop file path (built by scanning apps).
-APP_DIRS="/usr/share/applications $HOME/.local/share/applications"
-lookup_cache="${XDG_CACHE_HOME:-$HOME/.cache}/combined-menu-apps.txt"
-if [ ! -f "$lookup_cache" ] || [ "$lookup_cache" -ot "$HOME/.config/sway/config" ]; then
-    : > "$lookup_cache"
-    for d in $APP_DIRS; do
-        [ -d "$d" ] || continue
-        for f in "$d"/*.desktop; do
-            [ -f "$f" ] || continue
-            name=$(grep -m1 '^Name=' "$f" 2>/dev/null | cut -d= -f2-)
-            [ -n "$name" ] && printf '%s%s%s\n' "$name" "$SEP" "$f" >> "$lookup_cache"
-        done
-    done
-fi
-
-{
+# No cache file: a stale lookup cache hid newly installed apps.
+list=$({
     # desktop entries
-    while IFS="$SEP" read -r name file; do
-        [ -n "$name" ] && printf '%s%s%s%s%s\n' "$name" "$SEP" "@@DESKTOP@@" "$SEP" "$file"
-    done < "$lookup_cache"
+    grep -H -m1 '^Name=.' /usr/share/applications/*.desktop "$HOME"/.local/share/applications/*.desktop 2>/dev/null |
+        awk -v s="$SEP" '{ i = index($0, ":"); print substr($0, i + 6) s "@@DESKTOP@@" s substr($0, 1, i - 1) }'
 
     # custom commands
     if [ -f "$CMDS" ]; then
@@ -46,13 +29,13 @@ fi
             fi
         done < "$CMDS"
     fi
-} | sort -u -t"$SEP" -k1,1 > "$CACHE"
+} | sort -u -t"$SEP" -k1,1)
 
-sel=$(cut -d"$SEP" -f1 "$CACHE" | wmenu -i -l 12)
+sel=$(printf '%s\n' "$list" | cut -d"$SEP" -f1 | wmenu -i -l 12)
 [ -n "$sel" ] || exit
 
 # Match on the full first field, then split into exactly 3 fields on the SEP.
-match=$(awk -F"$SEP" -v s="$sel" '$1==s {print; exit}' "$CACHE")
+match=$(printf '%s\n' "$list" | awk -F"$SEP" -v s="$sel" '$1==s {print; exit}')
 [ -n "$match" ] || exit
 
 kind=$(printf '%s' "$match" | awk -F"$SEP" '{print $2}')
