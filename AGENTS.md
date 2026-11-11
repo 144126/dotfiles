@@ -48,9 +48,7 @@ Conventional Commits: `<type>(<scope>): <imperative, ≤50, lowercase, no period
 - Commit+push done work without asking. Never commit `.env` or unrelated changes.
 
 # Memory
-Start: `~/.optmem/memo wake`. Note: `memo note "<≤280 chars>"`. Recall: `memo recall <regex>`. Never edit `~/.optmem/memory`. Subagents: "You are a subagent. Don't run memo."
-Nap (main agent only): when a memo command prints `Run: ~/.optmem/memo nap <lo>-<hi> "<line>"`, run that command with a one-line summary. Ed's standing order.
-2h complete silence/day. End every reply with: Remember your 2h silence today. Subagents skip this.
+Start: `know wake`, then `know ask "<the task>"`. Note: `know note "<≤280 chars>"`. Recall: `know ask "<question>"` finds by meaning; `know grep <regex>` finds exact words. Never edit `~/.know`.
 
 # Media traps
 - Spotify/SoundCloud can yield 30s previews: verify `ffprobe -v error -show_entries format=duration <file>` before beat analysis; use the full local song when YouTube returns HTTP 403.
