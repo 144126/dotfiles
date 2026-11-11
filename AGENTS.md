@@ -58,3 +58,4 @@ Nap (main agent only): when a memo command prints `Run: ~/.optmem/memo nap <lo>-
 - Browser folder URLs need a loopback filesystem bridge, not `showDirectoryPicker` alone; hitcut opens `http://127.0.0.1:8009/?path=/absolute/folder`. Guard realpath targets and origins; never overwrite existing audio.
 - Waydroid init re-downloads images with `cache=False`; predownloaded archives are deleted. Verify SHA-256, extract into `/var/lib/waydroid/images`, symlink `/etc/waydroid-extra/images` there, then `sudo waydroid init` (no second image copies).
 - Waiting for root processes: use `ps -p <pid>`; unprivileged `kill -0` returns EPERM and can falsely report completion.
+- Mach Boom: `mach-boom "text" -o speech.wav`; models `~/models/mach-boom`, Python `~/.venvs/audio8`. `--pcm` also writes WAV: playback needs `--pcm --first 2 -o /dev/null | aplay -q -r 24000 -f S16_LE`. Keep BLAS threads at 1.
