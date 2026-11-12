@@ -26,7 +26,7 @@ exec wl-paste --watch cliphist store
 exec_always dbus-update-activation-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP QT_QPA_PLATFORM
 exec_always while :; do ~/.local/bin/battery-notify.sh; sleep 30; done
 exec while :; do ~/.local/bin/headphone-autoswitch; sleep 2; done
-exec while :; do /usr/bin/node --env-file-if-exists=$HOME/.config/rope/env $HOME/i/me/rope/build; sleep 3; done
+exec ~/i/me/rope/bin/run
 bindsym $mod+n exec ~/i/me/rope/bin/rope
 exec_always /home/i/gemini_daemon/run.sh
 set $menu combined-menu
