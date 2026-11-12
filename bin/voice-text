@@ -1,6 +1,6 @@
 #!/bin/bash
 # voice-text <wav>: the one speech-to-text of this machine. Text to stdout.
-# OpenRouter parakeet-ultra first (~$0.002/min), local Whistle (:8081) when the key is missing or the API fails.
+# OpenRouter MAI-Transcribe-2 first (~$0.10/h), local Whistle (:8081) when the key is missing or the API fails.
 # Mod+Ctrl+E (sway-voice-global.sh) pastes this and pi-voice sends it to pi, so they can never diverge.
 LOG="${XDG_RUNTIME_DIR:-/tmp}/voice/log"
 URL="${PI_VOICE_URL:-http://127.0.0.1:8081/}"
@@ -16,7 +16,7 @@ wav=$1
 
 or_text() {
   [ -n "$OPENROUTER_API_KEY" ] || return 1
-  base64 -w0 "$wav" | jq -cRn '{model:"moondream/parakeet-ultra",input_audio:{data:input,format:"wav"},temperature:0}' |
+  base64 -w0 "$wav" | jq -cRn '{model:"microsoft/mai-transcribe-2",input_audio:{data:input,format:"wav"},temperature:0}' |
     curl -sSf -m 120 https://openrouter.ai/api/v1/audio/transcriptions -H "Authorization: Bearer $OPENROUTER_API_KEY" -H 'Content-Type: application/json' --data-binary @- 2>>"$LOG" |
     jq -er '.text | select(length > 0)' 2>>"$LOG"
 }
