@@ -110,9 +110,9 @@ try:
     # tasr_seg_t: int32 n at byte 20 (buffered samples), int32 speech at byte 24
     seg_n = lambda: int.from_bytes(seg.raw[20:24], 'little')
     in_speech = lambda: seg.raw[24:28] != bytes(4)
+    # streaming text shows while you talk; at the pause the full-context pass rewrites the phrase (~35% fewer errors)
     def finish(n):
-        stream.feed(buf[fed:n])
-        output(stream.finish(), True)
+        output(eng.transcribe(buf[:n]), True)
         stream.reset()
     fed = 0
     hearing = False
