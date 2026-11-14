@@ -56,7 +56,7 @@ bindsym --no-repeat $mod+Control+z exec ~/.local/bin/claude-voice toggle
 
 # Super+a sends a screenshot into the live session. Super+q starts screen frames.
 bindsym --no-repeat $mod+a exec /home/i/gemini_daemon/mod-a.sh
-bindsym --no-repeat $mod+q exec /home/i/gemini_daemon/mod-q.sh
+bindsym --no-repeat $mod+Control+t exec /home/i/gemini_daemon/mod-q.sh
 
 # Super+Shift+d: same session with screen recording
 bindsym --no-repeat $mod+Shift+d exec /home/i/gemini_daemon/always-on-video.sh
@@ -175,7 +175,7 @@ bindsym $mod+Control+Shift+0 exec ~/.config/sway/clip-multi.sh 10 reverse
 # Global voice: Mod+Ctrl+E start/stop. Mod+Ctrl+R mute/unmute while recording.
 # Stop queues transcription (paste when done). Waybar shows state; click toggles, right-click cancels.
 bindsym --no-repeat $mod+Control+e exec ~/.local/bin/sway-voice-global.sh
-bindsym --no-repeat $mod+Control+t exec ~/.local/bin/voice-stream
+bindsym --no-repeat $mod+q exec ~/.local/bin/voice-stream
 bindsym --no-repeat $mod+Control+r exec ~/.local/bin/sway-voice-global.sh mute
 
 bar {
