@@ -71,6 +71,7 @@ try:
     seg = ctypes.create_string_buffer(256)
     buf = np.zeros(16000 * 20, dtype=np.int16)
     lib.tasr_seg_init(seg, buf.ctypes.data, len(buf))
+    seg[40:44] = (27).to_bytes(4, 'little')  # tasr_seg_t.hang in 20 ms blocks: 540 ms of silence ends a phrase
     target = focused()
     if target is None:
         raise RuntimeError('no focused window')
