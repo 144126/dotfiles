@@ -7,4 +7,3 @@ Launcher:combined-menu
 Reload Sway:swaymsg reload
 Parrot:foot -e ssh user@192.168.64.3
 pavucontrol:pavucontrol
-t3code:/home/ed/.local/bin/t3px
