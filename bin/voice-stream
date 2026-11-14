@@ -80,26 +80,19 @@ try:
             state.write_text('● voice → clipboard')
             notify('window changed · remaining speech goes to clipboard')
         clipboard.append(text)
-    # oido's tiny C segmenter finds phrase ends; fluid speech pro writes each phrase at the pause
+    # oido streams while you talk; at 540 ms of silence its text for the phrase is typed once
     # tasr_seg_t: int32 n at byte 20 (buffered samples), int32 speech at byte 24
     seg_n = lambda: int.from_bytes(seg.raw[20:24], 'little')
     in_speech = lambda: seg.raw[24:28] != bytes(4)
-    jobs = queue.Queue()
-    def work():
-        import onnx_asr
-        model = onnx_asr.load_model('nemo-conformer-tdt', str(Path.home() / 'models/fluid-speech-pro'), quantization='int8')
-        model.recognize(np.zeros(16000, np.float32))  # first call is ~2 s slower; pay it while you talk
-        while (pcm := jobs.get()) is not None:
-            if text := model.recognize(pcm.astype(np.float32) / 32768):
-                output(text)
-    def run():
-        try:
-            work()
-        except Exception as error:
-            notify('voice error: ' + str(error))
-            stop.set()
-    worker = threading.Thread(target=run)
-    worker.start()
+    models = Path.home() / 'models/oido'
+    stream = pytasr.NemoStream(pytasr.Nemo(str(models / 'oido_v2a.tnm'), lm=pytasr.LM(str(models / 'oido_v2.tlm')), beam=4))
+    stream.reset()
+    def finish(n):
+        stream.feed(buf[fed:n])
+        if text := stream.finish():
+            output(text)
+        stream.reset()
+    fed = 0
     q = queue.Queue()
     with sd.InputStream(samplerate=16000, channels=1, dtype='int16', blocksize=320, callback=lambda d, *_: q.put(d[:, 0].copy())):
         state.write_text('● voice listening')
@@ -109,13 +102,19 @@ try:
             except queue.Empty:
                 continue
             if done := lib.tasr_seg_feed(seg, block.ctypes.data, len(block)):
-                jobs.put(buf[:done].copy())
+                finish(done)
+                fed = 0
                 lib.tasr_seg_next(seg)
+            elif not in_speech():
+                if fed:
+                    stream.reset()
+                    fed = 0
+            elif seg_n() > fed:
+                stream.feed(buf[fed:seg_n()])
+                fed = seg_n()
     state.write_text('● voice finishing')
     if in_speech():
-        jobs.put(buf[:seg_n()].copy())
-    jobs.put(None)
-    worker.join()
+        finish(seg_n())
     if clipboard:
         subprocess.run(['wl-copy'], input=' '.join(clipboard), text=True, check=True)
         notify('remaining speech copied')
