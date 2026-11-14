@@ -1,0 +1,5 @@
+#!/bin/sh
+app=$(find "$HOME/Downloads" -maxdepth 1 -type f -name 'T3-Code-*-x86_64.AppImage' -executable | sort -V | tail -n 1)
+[ -n "$app" ] || { echo 'T3 Code AppImage not found in Downloads.' >&2; exit 127; }
+curl --max-time 2 -fs -o /dev/null http://127.0.0.1:47821/ || { setsid "$HOME/.local/bin/pxpipe" >/dev/null 2>&1 & sleep 1; }
+exec "$HOME/.local/bin/pxpipe" warp -- "$app" "$@"
