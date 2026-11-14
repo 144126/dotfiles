@@ -12,7 +12,8 @@ SEP=$'\x1f'
 # No cache file: a stale lookup cache hid newly installed apps.
 list=$({
     # desktop entries
-    grep -H -m1 '^Name=.' /usr/share/applications/*.desktop "$HOME"/.local/share/applications/*.desktop 2>/dev/null |
+    grep -LZ -E '^(NoDisplay|Hidden)=true[[:space:]]*$' /usr/share/applications/*.desktop "$HOME"/.local/share/applications/*.desktop 2>/dev/null |
+        xargs -0 -r grep -H -m1 '^Name=.' |
         awk -v s="$SEP" '{ i = index($0, ":"); print substr($0, i + 6) s "@@DESKTOP@@" s substr($0, 1, i - 1) }'
 
     # custom commands
