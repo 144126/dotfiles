@@ -9,7 +9,6 @@ import threading
 import time
 from pathlib import Path
 
-import regex
 
 os.environ.pop('LD_LIBRARY_PATH', None)
 lock = open(Path(os.environ['XDG_RUNTIME_DIR']) / 'voice-stream.lock', 'a+')
@@ -70,54 +69,28 @@ try:
     target = focused()
     if target is None:
         raise RuntimeError('no focused window')
-    written = ''
     clipboard = []
-    diverted = False
-    def divert(reason):
-        global diverted
-        if not diverted:
-            diverted = True
-            state.write_text('● voice → clipboard')
-            notify(reason + ' · remaining speech goes to clipboard')
-    def output(text, final=False):
-        global written
-        if focused() != target:
-            divert('window changed')
-        if diverted:
-            if final:
-                if written and not text.startswith(written):
-                    notify('clipboard contains the entire revised phrase; replace the last phrase')
-                clipboard.append(text[len(written):] if text.startswith(written) else text)
-                written = ''
+    def output(text):
+        if not clipboard and focused() == target:
+            # wtype puts its first key on keycode 9 (Escape); Electron drops a space there, so Shift_L takes it
+            subprocess.run(['wtype', '-k', 'Shift_L', '--', text + ' '], check=True)
             return
-        old = regex.findall(r'\X', written)
-        new = regex.findall(r'\X', text)
-        common = 0
-        while common < min(len(old), len(new)) and old[common] == new[common]:
-            common += 1
-        keys = ['-k', 'BackSpace'] * (len(old) - common)
-        suffix = ''.join(new[common:])
-        if final and text and not text.endswith(' '):
-            suffix += ' '
-        if keys or suffix:
-            # wtype puts its first key on keycode 9 (Escape); Electron drops a space there, so Shift_L takes it. `wtype -` buffers stdin.
-            subprocess.run(['wtype', '-k', 'Shift_L', *keys, '--', suffix], check=True)
-        written = '' if final else text
-    # oido's tiny C segmenter only finds phrase ends; fluid speech pro writes the text
+        if not clipboard:
+            state.write_text('● voice → clipboard')
+            notify('window changed · remaining speech goes to clipboard')
+        clipboard.append(text)
+    # oido's tiny C segmenter finds phrase ends; fluid speech pro writes each phrase at the pause
     # tasr_seg_t: int32 n at byte 20 (buffered samples), int32 speech at byte 24
     seg_n = lambda: int.from_bytes(seg.raw[20:24], 'little')
     in_speech = lambda: seg.raw[24:28] != bytes(4)
     jobs = queue.Queue()
-    phrase = 0
     def work():
         import onnx_asr
         model = onnx_asr.load_model('nemo-conformer-tdt', str(Path.home() / 'models/fluid-speech-pro'), quantization='int8')
-        while (job := jobs.get()) is not None:
-            n, pcm, final = job
-            # a partial is dropped once its phrase has ended; finals are never dropped
-            if final or n == phrase:
-                output('' if pcm is None else model.recognize(pcm.astype(np.float32) / 32768), final)
-            jobs.task_done()
+        model.recognize(np.zeros(16000, np.float32))  # first call is ~2 s slower; pay it while you talk
+        while (pcm := jobs.get()) is not None:
+            if text := model.recognize(pcm.astype(np.float32) / 32768):
+                output(text)
     def run():
         try:
             work()
@@ -126,8 +99,6 @@ try:
             stop.set()
     worker = threading.Thread(target=run)
     worker.start()
-    hearing = False
-    asked = 0
     q = queue.Queue()
     with sd.InputStream(samplerate=16000, channels=1, dtype='int16', blocksize=320, callback=lambda d, *_: q.put(d[:, 0].copy())):
         state.write_text('● voice listening')
@@ -136,28 +107,16 @@ try:
                 block = q.get(timeout=0.2)
             except queue.Empty:
                 continue
-            done = lib.tasr_seg_feed(seg, block.ctypes.data, len(block))
-            if hearing and not in_speech() and not done:
-                jobs.put((phrase, None, True))
-                phrase += 1
-                asked = 0
-            hearing = in_speech()
-            if done:
-                jobs.put((phrase, buf[:done].copy(), True))
-                phrase += 1
-                asked = 0
+            if done := lib.tasr_seg_feed(seg, block.ctypes.data, len(block)):
+                jobs.put(buf[:done].copy())
                 lib.tasr_seg_next(seg)
-            # one partial at a time, after each new second of speech, so the CPU never falls behind
-            elif hearing and seg_n() - asked >= 16000 and not jobs.unfinished_tasks:
-                asked = seg_n()
-                jobs.put((phrase, buf[:asked].copy(), False))
     state.write_text('● voice finishing')
-    if hearing:
-        jobs.put((phrase, buf[:seg_n()].copy(), True))
+    if in_speech():
+        jobs.put(buf[:seg_n()].copy())
     jobs.put(None)
     worker.join()
     if clipboard:
-        subprocess.run(['wl-copy'], input=''.join(x + (' ' if x and not x.endswith(' ') else '') for x in clipboard).rstrip(), text=True, check=True)
+        subprocess.run(['wl-copy'], input=' '.join(clipboard), text=True, check=True)
         notify('remaining speech copied')
     else:
         notify('voice stopped')
