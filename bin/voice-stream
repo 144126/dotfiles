@@ -74,8 +74,6 @@ try:
     target = focused()
     if target is None:
         raise RuntimeError('no focused window')
-    # one wtype keeps one keymap: a fresh wtype puts its first char on keycode 9 (Escape) and Electron drops a space there
-    kb = subprocess.Popen(['wtype', '-'], stdin=subprocess.PIPE, text=True)
     written = ''
     clipboard = []
     diverted = False
@@ -101,11 +99,13 @@ try:
         common = 0
         while common < min(len(old), len(new)) and old[common] == new[common]:
             common += 1
-        suffix = '\b' * (len(old) - common) + ''.join(new[common:])
+        keys = ['-k', 'BackSpace'] * (len(old) - common)
+        suffix = ''.join(new[common:])
         if final and text and not text.endswith(' '):
             suffix += ' '
-        kb.stdin.write(suffix)
-        kb.stdin.flush()
+        if keys or suffix:
+            # wtype puts its first key on keycode 9 (Escape); Electron drops a space there, so Shift_L takes it. `wtype -` buffers stdin.
+            subprocess.run(['wtype', '-k', 'Shift_L', *keys, '--', suffix], check=True)
         written = '' if final else text
     # tasr_seg_t: int32 n at byte 20 (buffered samples), int32 speech at byte 24
     seg_n = lambda: int.from_bytes(seg.raw[20:24], 'little')
@@ -143,8 +143,6 @@ try:
     state.write_text('● voice finishing')
     if hearing:
         finish(seg_n())
-    kb.stdin.close()
-    kb.wait()
     if clipboard:
         subprocess.run(['wl-copy'], input=''.join(x + (' ' if x and not x.endswith(' ') else '') for x in clipboard).rstrip(), text=True, check=True)
         notify('remaining speech copied')
