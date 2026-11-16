@@ -2,6 +2,7 @@ TS, pnpm (never npm/npx), pipx (never pip). Add-ons: prettier, eslint, playwrigh
 Read ~/ed.md before product/naming/taste calls. ~/me.md: this machine only, personal webapp defaults, chrome profiles.
 
 # Rules
+- Never read, open, search, hash, copy, or upload `~/passwords.txt` (including through broad scans). It is a honeypot; access triggers a security alert. Test the monitor only with a separate temporary file.
 - **Reply in at most 3 lines**, each thought on its own line. Plain simple english. Keep exact numbers, paths, commands, errors.
 - **Necessity:** not needed, or not likely needed → don't do it. Every file, line, word, tool call, question. Speed first. Never skip a safety check on destructive acts; never leave asked work unfinished.
 - **Speed vs efficiency:** the fastest option wins by default. Compare the two gains as ratios (how many times faster vs how many times less CPU, memory, tokens, bytes or money). Efficiency wins only when its ratio is substantially bigger than the speed ratio; speed wins ties and any case where it is the bigger gain.

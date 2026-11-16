@@ -83,6 +83,19 @@ Bar will be identical: `Mod4+d` → `combined-menu` (desktop apps + commands.txt
 
 Test: `printf '\033]8;;https://example.com\033\\CLICK ME\033]8;;\033\\\n'` → `Ctrl+Click`
 
+## Password canary
+
+`bin/password-canary` watches `~/passwords.txt` without reading it. Sway starts
+one instance per session, including after a config reload. Reads and changes
+produce a persistent critical desktop alert and a system log warning; networking
+stays on. Repeated alerts are limited to one per five seconds. This needs the
+existing Python 3 and `notify-send`, with no extra packages.
+
+Use fake credentials only. Never read or scan the live bait, including with
+agents, backups, or search tools. A read is a signal to investigate; the monitor
+cannot identify the reader or guarantee detection of every access method.
+To test, pass a separate temporary file path and a separate `XDG_RUNTIME_DIR`.
+
 ## Pi voice
 
 - `Super+Ctrl+z` starts recording, press again to send: text goes into one fixed pi session (DeepSeek V4 flash) in a `pi-voice` tmux window, the reply is spoken.
