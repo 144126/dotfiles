@@ -1,25 +1,43 @@
 #!/usr/bin/env bash
 # Drive the silent headless 1440fl Chrome on 9223. Starts it if needed.
+# handoff|demo|exec go to abx; show|hide relaunch the same profile visible/headless, carrying session state.
 set -euo pipefail
 export TMPDIR="${TMPDIR:-$HOME/.cache/abtmp}"
 mkdir -p "$TMPDIR" /tmp/ab-1440fl
-if ! curl -sf --max-time 1 http://127.0.0.1:9223/json/version >/dev/null; then
-  nohup /usr/bin/google-chrome-stable \
-    --headless=new \
-    --user-data-dir="$HOME/.config/chrome-1440fl" \
-    --profile-directory=Default \
-    --remote-debugging-port=9223 \
-    --remote-debugging-address=127.0.0.1 \
-    --remote-allow-origins=* \
-    --no-first-run \
-    --disable-gpu \
-    --user-agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$(/usr/bin/google-chrome-stable --version | grep -o '[0-9]*' | head -1).0.0.0 Safari/537.36" \
-    about:blank >>/tmp/ab-1440fl/headless.log 2>&1 &
+dir="$HOME/.config/chrome-1440fl"
+ab=(agent-browser --session ab1440fl --cdp 9223 --headed false --auto-connect false)
+up() { curl -sf --max-time 1 http://127.0.0.1:9223/json/version; }
+launch() {
+  local mode=(--headless=new --disable-gpu "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$(/usr/bin/google-chrome-stable --version | grep -o '[0-9]*' | head -1).0.0.0 Safari/537.36")
+  [[ $1 == show ]] && mode=(--ozone-platform=wayland --password-store=basic --new-window)
+  nohup /usr/bin/google-chrome-stable "${mode[@]}" --user-data-dir="$dir" --profile-directory=Default \
+    --remote-debugging-port=9223 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* --no-first-run \
+    "${2:-about:blank}" >>/tmp/ab-1440fl/headless.log 2>&1 &
   echo $! >/tmp/ab-1440fl/headless.pid
-  for i in 1 2 3 4 5 6 7 8 9 10; do
-    curl -sf --max-time 1 http://127.0.0.1:9223/json/version >/dev/null && break
-    sleep 0.3
-  done
-fi
+  for i in $(seq 30); do up >/dev/null && break; sleep 0.2; done
+}
+case "${1:-}" in
+  handoff|demo|exec)
+    ABX_AB="$0" ABX_SHOW="$0 show" ABX_HIDE="$0 hide" exec abx --session ab1440fl "$@" ;;
+  show|hide)
+    # New headless reports plain "Chrome/x" in /json/version, so read the launch flags.
+    headless=$(pgrep -af "user-data-dir=$dir" | grep -v -- --type= | grep -c -- --headless || true)
+    [[ $headless == $([[ $1 == hide ]] && echo 1 || echo 0) ]] && exit 0
+    st="$XDG_RUNTIME_DIR/ab-1440fl-state.json"
+    url=$("${ab[@]}" get url 2>/dev/null || echo about:blank)
+    (umask 077; "${ab[@]}" state save "$st" >/dev/null)
+    # TERM and wait for exit, or Chrome can drop Google cookies.
+    pkill -TERM -f "user-data-dir=$dir" || true
+    for i in $(seq 50); do pgrep -f "user-data-dir=$dir" >/dev/null || break; sleep 0.1; done
+    launch "$1" "$url"
+    # The daemon stays bound to the dead tab until told otherwise.
+    "${ab[@]}" tab "$("${ab[@]}" tab list | grep -om1 '\[t[0-9]*\]' | tr -d '[]')" >/dev/null
+    # Same profile on disk, so only session cookies need carrying (full load: 3 s, this: 0.05 s).
+    (umask 077; jq '.cookies=[.cookies[]|select(.expires==-1 or .expires==null)]|.origins=[]' "$st" >"$st.s")
+    "${ab[@]}" state load "$st.s" >/dev/null; rm -f "$st" "$st.s"
+    "${ab[@]}" open "$url" >/dev/null
+    exit 0 ;;
+esac
+up >/dev/null || launch hide
 export AGENT_BROWSER_IDLE_TIMEOUT_MS=900000
-exec agent-browser --session ab1440fl --cdp 9223 --headed false --auto-connect false "$@"
+exec "${ab[@]}" "$@"
