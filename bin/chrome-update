@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Update Google Chrome on Void from Google's signed apt repo (Void's nonfree template lags).
+# Verifies InRelease signature -> Packages hash -> .deb sha256, repackages like srcpkgs/google-chrome, installs.
+set -euo pipefail
+R=https://dl.google.com/linux/chrome/deb
+have=$(xbps-query -p pkgver google-chrome 2>/dev/null | sed "s/^google-chrome-//" || true)
+W=$(mktemp -d "${TMPDIR:-/tmp}/chrome-update.XXXXXX"); trap 'rm -rf "$W"' EXIT; cd "$W"
+export GNUPGHOME=$W/gpg; mkdir -m700 gpg
+curl -fsS https://dl.google.com/linux/linux_signing_key.pub | gpg -q --import
+curl -fsSo InRelease $R/dists/stable/InRelease; gpg -q --verify InRelease 2>/dev/null || { echo "bad InRelease signature" >&2; exit 1; }
+curl -fsSo Packages $R/dists/stable/main/binary-amd64/Packages
+grep -E " main/binary-amd64/Packages$" InRelease | awk 'length($1)==64{print $1"  Packages"}' | head -1 | sha256sum -c --quiet
+p=$(awk '/^Package: google-chrome-stable$/{f=1} f&&/^$/{exit} f' Packages)
+v=$(sed -n 's/^Version: \(.*\)-1$/\1/p' <<<"$p"); file=$(sed -n 's/^Filename: //p' <<<"$p"); sha=$(sed -n 's/^SHA256: //p' <<<"$p")
+[[ ${have%_*} == "$v" ]] && { echo "Chrome $v is current"; exit 0; }
+echo "Chrome ${have:-none} -> $v"
+curl -fsSo c.deb "$R/$file"; echo "$sha  c.deb" | sha256sum -c --quiet
+mkdir d; ar p c.deb data.tar.xz | tar -xJ -C d; rm c.deb; cd d
+rm -rf etc opt/google/chrome/cron opt/google/chrome/*.xpm
+for s in 16 24 32 48 64 128 256; do mkdir -p usr/share/icons/hicolor/${s}x${s}/apps; mv opt/google/chrome/product_logo_$s.png usr/share/icons/hicolor/${s}x${s}/apps/google-chrome.png; done
+mkdir -p usr/share/licenses/google-chrome; cp /usr/share/licenses/google-chrome/google-chrome-eula.md usr/share/licenses/google-chrome/ 2>/dev/null || true
+cd "$W"
+xbps-create -q -A x86_64 -n "google-chrome-${v}_1" -s "Attempt at creating a safer, faster, and more stable browser" -l custom:chrome -H https://www.google.com/chrome/ \
+  -D "gtk+3>=0 glibc>=2.41_1 alsa-lib>=1.0.20_1 libcups>=1.5.3_1 nss>=3.121_1 libgbm>=9.0_1 libxkbcommon>=0.2.0_1" d >/dev/null
+rm -rf d; xbps-rindex -a "$W"/*.xbps >/dev/null
+sudo xbps-install -y --repository="$W" -u google-chrome | tail -1
+echo "Installed $(google-chrome-stable --version). Restart Chrome to use it."
