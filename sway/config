@@ -1,8 +1,8 @@
 set $mod Mod4
-set $left h
-set $down j
-set $up k
-set $right l
+set $left Left
+set $down Down
+set $up Up
+set $right Right
 xwayland force
 
 output eDP-1 scale 1
@@ -14,22 +14,24 @@ exec_always test -f ~/.Xresources && xrdb -merge ~/.Xresources
 exec ~/i/144126/dotfiles/bin/pw-start
 exec foot --server
 set $term footclient -e tmux
-exec swayidle -w timeout 144 ~/.local/bin/sway-blank
-# the Gemini daemon keeps the mic open, so it must not count as playing
-exec sway-audio-idle-inhibit --ignore-source-outputs Lavf60.16.101
 
 exec mako
 exec_always ~/i/144126/dotfiles/bin/password-canary
 exec env PATH=/home/ed/.grok/bin:/home/ed/.local/bin:/home/ed/.cargo/bin:/usr/bin:/bin node /home/ed/i/zen/zen.ts
 exec env PATH=/home/ed/.local/bin:/home/ed/.cargo/bin:/usr/bin:/bin node /home/ed/i/zen/evac.ts
-exec CopyQ
 exec wl-paste --watch cliphist store
+exec ~/.local/bin/spotify-keepalive.sh
 exec_always dbus-update-activation-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP QT_QPA_PLATFORM
-exec_always while :; do ~/.local/bin/battery-notify.sh; sleep 30; done
+exec_always flock -n $XDG_RUNTIME_DIR/battery-notify.lock sh -c 'while :; do ~/.local/bin/battery-notify.sh; sleep 30; done'
 exec while :; do ~/.local/bin/headphone-autoswitch; sleep 2; done
 exec ~/i/me/rope/bin/run
+exec ~/.local/bin/lfm-server
 bindsym $mod+n exec ~/i/me/rope/bin/rope
 exec_always /home/i/gemini_daemon/run.sh
+exec_always ~/.local/bin/sway-screen-rec-audio.sh
+exec swayidle -w timeout 144 ~/.local/bin/sway-blank
+# the Gemini daemon keeps the mic open, so it must not count as playing
+exec sway-audio-idle-inhibit --ignore-source-outputs Lavf60.16.101
 set $menu combined-menu
 
 bindsym $mod+Return exec bash -ic f
@@ -52,8 +54,9 @@ bindsym $mod+Shift+r exec sh -c 'sway-mirror --stop 2>/dev/null; pkill -USR2 way
 bindsym --no-repeat $mod+Shift+z exec /home/i/gemini_daemon/always-on-audio.sh
 # Super+z: mute/unmute the live voice (Claude first, else Gemini Live)
 bindsym --no-repeat $mod+z exec ~/.local/bin/mod-z
-# Super+Ctrl+z: start/end the Claude voice session (Whistle in, Phonon out, one headless Claude session)
-bindsym --no-repeat $mod+Control+z exec ~/.local/bin/claude-voice toggle
+# Super+Ctrl+z: pi voice. Press to talk, press again to send. Same speech-to-text as Mod+Ctrl+E,
+# typed into the fixed pi session in the "pi-voice" tmux window (opened in foot if missing), replies spoken.
+bindsym --no-repeat $mod+Control+z exec ~/.local/bin/pi-voice toggle
 
 # Super+a sends a screenshot into the live session. Super+Ctrl+t starts screen frames.
 bindsym --no-repeat $mod+a exec /home/i/gemini_daemon/mod-a.sh
@@ -94,6 +97,10 @@ bindsym $mod+Shift+8 move container to workspace number 8
 bindsym $mod+Shift+9 move container to workspace number 9
 bindsym $mod+Shift+0 move container to workspace number 10
 
+bindsym $mod+Tab workspace next
+bindsym $mod+Shift+Tab workspace prev
+bindsym $mod+grave workspace back_and_forth
+
 bindsym $mod+b splith
 bindsym $mod+v splitv
 bindsym $mod+s layout stacking
@@ -115,10 +122,6 @@ mode "resize" {
     bindsym $down resize grow height 10px
     bindsym $up resize shrink height 10px
     bindsym $right resize grow width 10px
-    bindsym Left resize shrink width 10px
-    bindsym Down resize grow height 10px
-    bindsym Up resize shrink height 10px
-    bindsym Right resize grow width 10px
     bindsym Return mode "default"
     bindsym Escape mode "default"
 }
@@ -141,10 +144,12 @@ bindsym $mod+Control+Down exec pactl set-sink-volume @DEFAULT_SINK@ -5%
 bindsym $mod+Control+Up exec pactl set-sink-volume @DEFAULT_SINK@ +5%
 bindsym --no-repeat $mod+Control+s exec ~/.local/bin/chrome-1440fl --spotify-play
 bindsym $mod+Control+m exec pactl set-sink-mute @DEFAULT_SINK@ toggle
+bindsym $mod+Control+h exec pactl set-sink-port @DEFAULT_SINK@ analog-output-headphones
 bindsym $mod+Control+Left exec light -U 5
 bindsym $mod+Control+Right exec light -A 5
 bindsym Print exec flameshot gui
 bindsym $mod+Print exec flameshot full
+bindsym $mod+p exec flameshot full
 bindsym $mod+Shift+s exec grim -g "$(slurp)" - | wl-copy
 
 # Screen off and keyboard/mouse locked until Mod+Ctrl+A again. Also after 144s idle.
@@ -205,9 +210,17 @@ for_window [app_id="google-chrome" title="^.* — Google Chrome$"] floating enab
 for_window [app_id="chromium" title="^.*new request|popup|auth"] floating enable, resize set 800 600
 for_window [app_id="firefox" title="^Extension:"] floating enable
 for_window [app_id="firefox" title="^.*Mozilla Firefox$"] floating enable
+# T3 Code once opened floating + sticky off-screen at 4000,4024; always tile it.
+for_window [app_id="com.t3tools.T3Code"] sticky disable, floating disable
 
 input "1739:52599:SYNA308F:00_06CB:CD77_Touchpad" {
     tap enabled
 }
 
 include /etc/sway/config.d/*
+
+bindsym --no-repeat $mod+j exec /home/ed/.local/bin/hex dictation start
+bindsym --release $mod+j exec /home/ed/.local/bin/hex dictation stop
+bindsym --no-repeat $mod+k exec /home/ed/.local/bin/hex dictation toggle
+bindsym --no-repeat $mod+l exec /home/ed/.local/bin/hex paste-last
+bindsym --no-repeat $mod+Shift+k exec /home/ed/.local/bin/hex dictation toggle --raw

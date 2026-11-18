@@ -1,0 +1,28 @@
+#!/bin/sh
+# Loud siren on the built-in speaker, even when headphones (wired or bluetooth) are the output.
+# The speaker path leaves the headphone amp at 0 dB, so mute it in ALSA to spare ears.
+# Restores port, volume, mute and the headphone amp after.
+SINK=alsa_output.pci-0000_00_1f.3.analog-stereo
+SPK=analog-output-speaker-always
+port=$(pactl list sinks | awk -v s="$SINK" '$1=="Name:"{f=$2==s} f&&/Active Port:/{print $3; exit}')
+[ -n "$port" ] || exit 1
+vol() { pactl get-sink-volume "$SINK" | awk '/Volume:/{print $3; exit}'; }
+mute() { pactl get-sink-mute "$SINK" | awk '{print $2}'; }
+v0=$(vol) m0=$(mute)
+[ "$port" = "$SPK" ] || pactl set-sink-port "$SINK" "$SPK"
+vs=$(vol) ms=$(mute)
+pactl set-sink-mute "$SINK" 0
+pactl set-sink-volume "$SINK" 100%
+amixer -c0 -q sset Headphone 0% mute
+trap 'amixer -c0 -q sset Headphone 100% unmute' EXIT
+for _ in 1 2 3 4 5; do for f in 1000 1500; do
+  sox -q -n -r 48000 -c 2 -b 16 -e signed -t raw - synth 0.16 square $f vol 0.9
+done; done |
+  pacat -d "$SINK" --raw --format=s16le --rate=48000 --channels=2 --latency-msec=50
+pactl set-sink-volume "$SINK" "$vs"
+pactl set-sink-mute "$SINK" "$( [ "$ms" = yes ] && echo 1 || echo 0)"
+if [ "$port" != "$SPK" ]; then
+  pactl set-sink-port "$SINK" "$port"
+  pactl set-sink-volume "$SINK" "$v0"
+  pactl set-sink-mute "$SINK" "$( [ "$m0" = yes ] && echo 1 || echo 0)"
+fi

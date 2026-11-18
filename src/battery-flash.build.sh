@@ -3,7 +3,8 @@
 set -e
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 cp "$(dirname "$0")"/../../../../.cargo/registry/src/index.crates.io-*/wayland-protocols-wlr-*/wlr-protocols/unstable/wlr-layer-shell-unstable-v1.xml "$d" 2>/dev/null \
-  || cp /usr/share/wlr-protocols/unstable/wlr-layer-shell-unstable-v1.xml "$d"
+  || cp /usr/share/wlr-protocols/unstable/wlr-layer-shell-unstable-v1.xml "$d" 2>/dev/null \
+  || curl -fsSo "$d/wlr-layer-shell-unstable-v1.xml" https://gitlab.freedesktop.org/wlroots/wlr-protocols/-/raw/master/unstable/wlr-layer-shell-unstable-v1.xml
 cp /usr/share/wayland-protocols/stable/viewporter/viewporter.xml \
    /usr/share/wayland-protocols/staging/single-pixel-buffer/single-pixel-buffer-v1.xml \
    /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml "$d"

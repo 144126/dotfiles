@@ -1,4 +1,4 @@
-// full-screen red pulse over everything until the charger is in.
+// full-screen red pulse over everything until the battery stops draining.
 // one process, two 1x1 buffers, ~2 commits/s, no polling beyond a timer.
 // cc -O2 battery-flash.c <scanner glue> -lwayland-client
 #include <stdio.h>
@@ -132,8 +132,8 @@ static int charged(void)
 	FILE *f = fopen("/sys/class/power_supply/BAT0/status", "r");
 	if (f) {
 		buf[0] = 0;
-		if (fgets(buf, sizeof buf, f) && (!strncmp(buf, "Charging", 8) ||
-						  !strncmp(buf, "Full", 4))) {
+		// only draining is an emergency; Charging/Full/Not charging all mean AC
+		if (fgets(buf, sizeof buf, f) && strncmp(buf, "Discharging", 11)) {
 			fclose(f);
 			return 1;
 		}
