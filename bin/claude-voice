@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 
 const H = os.homedir();
 const D = `${H}/.local/state/claude-voice`;
+const CFG = `${H}/.claude_personal`; // account: claude-p (angelwingseducation)
 const SOCK = "/tmp/voice.sock";
 const PY = `${H}/.venvs/voice/bin/python`;
 const VOICE = `${H}/i/144126/dotfiles/voice/voice.py`;
@@ -29,6 +30,7 @@ const pid = () => {
 const status = (t) => fs.writeFileSync(`${D}/status.txt`, t);
 const tmux = (...a) => execFileSync("tmux", a, { encoding: "utf8" }).trim();
 const notify = (t) => spawn("notify-send", ["-t", "2500", "claude voice", t]).unref();
+let speech_muted = false;
 
 // one short request to the voice daemon, e.g. "q\n<text>" speaks, "stop\n" stops
 const send = (msg) =>
@@ -39,7 +41,7 @@ const send = (msg) =>
   });
 
 // "qp" and "q" both = Phonon (streamed)
-const speak = (text) => send(`qp\n${text}`);
+const speak = (text) => speech_muted ? Promise.resolve(true) : send(`qp\n${text}`);
 
 async function daemon() {
   if (await send("ping\n")) return true;
@@ -59,8 +61,8 @@ async function run() {
     return quit();
   }
   const id = randomUUID();
-  const pane = execFileSync("cwin", ["voice", "--session-id", id, "--append-system-prompt", PROMPT], { encoding: "utf8" }).trim();
-  const log = `${H}/.claude/projects/${H.replace(/[^a-zA-Z0-9]/g, "-")}/${id}.jsonl`;
+  const pane = execFileSync("cwin", ["voice", "--session-id", id, "--append-system-prompt", PROMPT], { encoding: "utf8", env: { ...process.env, CWIN_CMD: `CLAUDE_CONFIG_DIR=${CFG} claude` } }).trim();
+  const log = `${CFG}/projects/${H.replace(/[^a-zA-Z0-9]/g, "-")}/${id}.jsonl`;
 
   // speak each new assistant text block as it lands in the transcript
   let off = 0, rest = "", seen = false;
@@ -109,9 +111,19 @@ async function run() {
       else if (l === "heard") status("claude …");
       else if (l === "drop") status(muted ? "claude muted" : "claude ●");
       else if (l.startsWith("text ")) {
-        tmux("send-keys", "-t", pane, "-l", l.slice(5));
-        tmux("send-keys", "-t", pane, "Enter");
-        status("claude ●");
+        const text = l.slice(5).trim().toLowerCase().replace(/[.!?]+$/, "");
+        if (["mute yourself", "please mute yourself", "stop speaking"].includes(text)) {
+          speech_muted = true;
+          send("stop\n");
+          notify("spoken replies muted");
+        } else if (["unmute yourself", "please unmute yourself", "speak again"].includes(text)) {
+          speech_muted = false;
+          notify("spoken replies on");
+        } else {
+          tmux("send-keys", "-t", pane, "-l", l.slice(5));
+          tmux("send-keys", "-t", pane, "Enter");
+          status("claude ●");
+        }
       } else if (l.startsWith("error")) notify(l);
     }
   });
