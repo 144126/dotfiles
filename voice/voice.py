@@ -116,12 +116,18 @@ def run(*args):
 def aec_on():
     if REC_CMD:
         return False
-    return "pi_aec_src" in run("pactl", "list", "short", "sources") or run(
+    # webrtc works in 10 ms blocks (480 at 48 kHz); any other quantum crackles the playback
+    run("pw-metadata", "-n", "settings", "0", "clock.force-quantum", "480")
+    ok = "pi_aec_src" in run("pactl", "list", "short", "sources") or run(
         "pactl", "load-module", "module-echo-cancel", "aec_method=webrtc", "source_name=pi_aec_src", "sink_name=pi_aec_sink"
     ).strip().isdigit()
+    if not ok:
+        run("pw-metadata", "-n", "settings", "0", "clock.force-quantum", "0")
+    return ok
 
 
 def aec_off():
+    run("pw-metadata", "-n", "settings", "0", "clock.force-quantum", "0")
     for line in run("pactl", "list", "short", "modules").splitlines():
         if "pi_aec_src" in line:
             run("pactl", "unload-module", line.split()[0])
