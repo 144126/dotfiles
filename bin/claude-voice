@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 
 const H = os.homedir();
 const D = `${H}/.local/state/claude-voice`;
-const CFG = `${H}/.claude_personal`; // account: claude-p (angelwingseducation)
+const CFG = `${H}/.claude_3`; // account: claude-e (edbh54)
 const SOCK = "/tmp/voice.sock";
 const PY = `${H}/.venvs/voice/bin/python`;
 const VOICE = `${H}/i/144126/dotfiles/voice/voice.py`;
@@ -31,6 +31,28 @@ const status = (t) => fs.writeFileSync(`${D}/status.txt`, t);
 const tmux = (...a) => execFileSync("tmux", a, { encoding: "utf8" }).trim();
 const notify = (t) => spawn("notify-send", ["-t", "2500", "claude voice", t]).unref();
 let speech_muted = false;
+const sh = (s) => `'${s.replace(/'/g, "'\\''")}'`;
+
+// Claude gets its own tmux session "voice". When nothing shows it, a foot opens on the first empty workspace:
+// the for_window rule moves it there as it maps, so the current workspace and focus never change.
+const open_pane = (id) => {
+  const cmd = `bash -ic ${sh(`CLAUDE_CONFIG_DIR=${CFG} claude --session-id ${id} --append-system-prompt ${sh(PROMPT)}; exec bash`)}`;
+  let pane;
+  try {
+    pane = tmux("new-window", "-P", "-F", "#{pane_id}", "-t", "voice:", "-c", H, cmd);
+  } catch {
+    pane = tmux("new-session", "-d", "-s", "voice", "-P", "-F", "#{pane_id}", "-c", H, cmd);
+  }
+  tmux("rename-window", "-t", pane, "voice");
+  if (tmux("display", "-p", "-t", "voice", "#{session_attached}") === "0") {
+    const used = new Set(JSON.parse(execFileSync("swaymsg", ["-r", "-t", "get_workspaces"], { encoding: "utf8" })).map((w) => w.num));
+    let n = 1;
+    while (used.has(n)) n++;
+    execFileSync("swaymsg", ["-q", `for_window [app_id="claude-voice-${n}"] move container to workspace number ${n}`]);
+    execFileSync("swaymsg", ["-q", `exec foot --app-id=claude-voice-${n} tmux attach -t voice`]);
+  }
+  return pane;
+};
 
 // one short request to the voice daemon, e.g. "q\n<text>" speaks, "stop\n" stops
 const send = (msg) =>
@@ -61,7 +83,7 @@ async function run() {
     return quit();
   }
   const id = randomUUID();
-  const pane = execFileSync("cwin", ["voice", "--session-id", id, "--append-system-prompt", PROMPT], { encoding: "utf8", env: { ...process.env, CWIN_CMD: `CLAUDE_CONFIG_DIR=${CFG} claude` } }).trim();
+  const pane = open_pane(id);
   const log = `${CFG}/projects/${H.replace(/[^a-zA-Z0-9]/g, "-")}/${id}.jsonl`;
 
   // speak each new assistant text block as it lands in the transcript
