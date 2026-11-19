@@ -1,13 +1,10 @@
-import collections, io, os, queue, re, signal, socket, subprocess, sys, threading, time, urllib.request, wave
+import collections, io, os, queue, re, signal, socket, subprocess, sys, threading, time, wave
 
 import numpy as np
 
 SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
 LEOKANI = os.path.expanduser("~/models/leokani-tts-4.5M")
-STT_URL = os.environ.get("PI_VOICE_URL", "http://127.0.0.1:8081/")
-TOKEN_FILE = os.path.expanduser("~/.config/jot-stt.token")
-TOKEN = os.environ.get("WHISTLE_TOKEN") or (open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else "")
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
 SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 1.0)
 OUT_RATE = 24000
@@ -145,16 +142,20 @@ def kill(p):
         pass
 
 
+stt = None
+
+
+# the machine's one speech-to-text: conformer.py, same as Mod+Ctrl+E (voice-text)
 def transcribe(pcm):
-    b = io.BytesIO()
-    with wave.open(b, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(16000)
-        w.writeframes(pcm)
-    req = urllib.request.Request(STT_URL, b.getvalue(), {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {})
-    with urllib.request.urlopen(req, timeout=600) as r:
-        text = re.sub(r"\[[^\]]*\]|\([^)]*\)", "", r.read().decode()).strip().strip('"“”')
+    global stt
+    if stt is None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("conformer", os.path.join(os.path.dirname(os.path.abspath(__file__)), "conformer.py"))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        stt = m.load()
+    text = stt(np.frombuffer(pcm, np.int16)).strip()
     return text if re.search(r"\w", text) else ""
 
 
