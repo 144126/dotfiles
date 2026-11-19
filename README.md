@@ -99,7 +99,7 @@ To test, pass a separate temporary file path and a separate `XDG_RUNTIME_DIR`.
 ## Pi voice
 
 - `Super+Ctrl+z` starts recording, press again to send: text goes into one fixed pi session (DeepSeek V4 flash) in a `pi-voice` tmux window, the reply is spoken.
-- Speech-to-text is `bin/voice-text`, also used by `Mod+Ctrl+E` dictation, so both always match.
+- Speech-to-text is `bin/voice-text` (local NeMo Conformer-small 4-bit via `voice/conformer.py`, model in `~/models/conformer-small`), also used by `Mod+Ctrl+E` dictation, so both always match.
 - `Super+z` mutes or unmutes the voice. When pi voice is off, `Super+z` mutes Gemini Live instead.
 - Code: `bin/pi-voice`, `bin/voice-text`, `bin/mod-z`, `bin/cwin`.
 - State: `~/.local/state/pi-voice`.
