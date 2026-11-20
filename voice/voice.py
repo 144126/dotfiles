@@ -6,7 +6,10 @@ SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
 LEOKANI = os.path.expanduser("~/models/leokani-tts-4.5M")
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
-SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 1.0)
+TURN_MODEL = os.path.expanduser("~/models/smart-turn/smart-turn-v3.2-cpu.onnx")
+# quiet that ends a turn even when Smart Turn hears an unfinished one
+SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 2.0)
+TURN_CHECKS = (8, 24)  # Smart Turn is asked after 256 ms and 768 ms of quiet
 OUT_RATE = 24000
 FRAME = 512  # Silero's window: 32 ms at 16 kHz
 FRAME_S = FRAME / 16000
@@ -222,6 +225,38 @@ class Vad:
         return out[0][0]
 
 
+def slaney_mel(sr=16000, n_fft=400, n_mels=80):
+    hz2mel = lambda f: np.where(f < 1000, 3 * f / 200, 15 + 27 * np.log(np.maximum(f, 1e-10) / 1000) / np.log(6.4))
+    mel2hz = lambda m: np.where(m < 15, 200 * m / 3, 1000 * np.exp(np.log(6.4) / 27 * (m - 15)))
+    pts = mel2hz(np.linspace(hz2mel(0.0), hz2mel(sr / 2), n_mels + 2))
+    slopes = pts[None, :] - np.linspace(0, sr / 2, n_fft // 2 + 1)[:, None]
+    d = np.diff(pts)
+    fb = np.maximum(0, np.minimum(-slopes[:, :-2] / d[:-1], slopes[:, 2:] / d[1:]))
+    return (fb * (2 / (pts[2:] - pts[:-2]))).T
+
+
+class Turn:
+    """Smart Turn v3.2 (pipecat-ai, BSD-2): the chance the speech so far is a finished turn, from tone and pace.
+    Input is Whisper's log-mel of the last 8 s (matches transformers' WhisperFeatureExtractor to 1e-7)."""
+
+    def __init__(self):
+        import onnxruntime as ort
+
+        so = ort.SessionOptions()
+        so.intra_op_num_threads, so.inter_op_num_threads = 2, 1
+        self.s = ort.InferenceSession(TURN_MODEL, so, providers=["CPUExecutionProvider"])
+        self.mel, self.win = slaney_mel(), np.hanning(401)[:-1]
+
+    def __call__(self, pcm):
+        x = np.frombuffer(pcm, "<i2").astype(np.float32)[-128000:] / 32768
+        x = np.pad(x, (128000 - len(x), 0))
+        x = (x - x.mean()) / np.sqrt(x.var() + 1e-7)
+        frames = np.lib.stride_tricks.sliding_window_view(np.pad(x, 200, mode="reflect"), 400)[::160]
+        log = np.log10(np.maximum(self.mel @ (np.abs(np.fft.rfft(frames * self.win, axis=1)) ** 2).T[:, :-1], 1e-10))
+        feats = ((np.maximum(log, log.max() - 8) + 4) / 4).astype(np.float32)
+        return float(self.s.run(None, {"input_features": feats[None]})[0].ravel()[0])
+
+
 def call(c, f):
     with lock:
         old, st["call"] = st["call"], c
@@ -234,6 +269,7 @@ def call(c, f):
     st["sink"] = "pi_aec_sink" if aec else None
     p = mic("pi_aec_src" if aec else None)
     vad = Vad()
+    turn = Turn() if os.path.exists(TURN_MODEL) else (lambda pcm: 0.0)
     muted = [False]
     jobs = queue.Queue()
     send_lock = threading.Lock()
@@ -307,8 +343,13 @@ def call(c, f):
             barge = None
         voiced += prob >= 0.5
         silent = 0 if prob >= 0.35 else silent + 1
-        # a paused reply waits on this utterance, so a shorter pause ends it
-        if silent * FRAME_S < (0.5 if barge else SILENCE_S) and len(speech) * FRAME_S < 120:
+        # a paused reply waits on this utterance, so a short pause ends it; otherwise Smart Turn decides,
+        # and a long enough quiet ends the turn regardless
+        if barge:
+            done = silent * FRAME_S >= 0.5
+        else:
+            done = silent * FRAME_S >= SILENCE_S or (silent in TURN_CHECKS and voiced >= 5 and turn(b"".join(speech)) >= 0.5)
+        if not done and len(speech) * FRAME_S < 120:
             continue
         if voiced >= 5:
             emit("heard")
