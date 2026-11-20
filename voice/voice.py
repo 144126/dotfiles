@@ -13,7 +13,12 @@ FRAME_S = FRAME / 16000
 
 lock = threading.Lock()
 tts_lock = threading.Lock()
-st = {"gen": 0, "out": None, "until": 0.0, "busy": False, "sink": None, "call": None}
+st = {"gen": 0, "out": None, "until": 0.0, "busy": False, "sink": None, "call": None, "paused": False, "rewind": False}
+CHUNK = int(OUT_RATE * 0.02) * 4  # 20 ms of float32 per write, so a pause lands at once
+REWIND = int(OUT_RATE * 0.4) * 4  # a resume replays pacat's 100 ms buffer plus 300 ms, so the words pick up cleanly
+BARGE_S = 1.5  # talking this long over a paused reply is a real interruption, whatever the words
+# a short utterance made only of these words is a backchannel ("mhm", "got it"): the reply resumes
+BACKCHANNEL = set("mhm mm mmhmm hmm uh huh um ah oh yeah yes yep yup ok okay right sure alright all cool nice got it i see".split())
 texts, pcms = queue.Queue(), queue.Queue()
 leokani = None
 
@@ -32,13 +37,32 @@ def stop_audio():
     with lock:
         st["gen"] += 1
         st["until"] = 0.0
+        st["paused"] = st["rewind"] = False
         out, st["out"] = st["out"], None
     if out:
         end(out, now=True)
 
 
+# barge-in: silence the reply now, keep its place; resume or stop once the words are known
+def pause_audio():
+    with lock:
+        st["paused"] = st["rewind"] = True
+        out, st["out"] = st["out"], None
+    if out:
+        end(out, now=True)
+
+
+def resume_audio():
+    st["paused"] = False
+
+
+def backchannel(text):
+    words = re.sub(r"[^a-z ]", " ", text.lower()).split()
+    return len(words) <= 3 and all(w in BACKCHANNEL for w in words)
+
+
 def playing():
-    return st["busy"] or not texts.empty() or not pcms.empty() or time.time() < st["until"]
+    return st["paused"] or st["busy"] or not texts.empty() or not pcms.empty() or time.time() < st["until"]
 
 
 def leokani_chunks(text):
@@ -78,20 +102,31 @@ def synth():
 
 def play():
     # one pacat stream per burst of speech keeps sentences gapless; killing it cuts audio at once
+    cur = None  # [gen, pcm bytes, bytes written]
     while True:
-        try:
-            gen, pcm, secs = pcms.get(timeout=0.3)
-        except queue.Empty:
-            with lock:
-                out = st["out"] if time.time() > st["until"] + 0.3 else None
-                if out:
-                    st["out"] = None
-            if out:
-                end(out)
+        if st["paused"]:
+            time.sleep(0.02)
             continue
-        with lock:
-            if gen != st["gen"]:
+        if cur is None or cur[2] >= len(cur[1]):
+            try:
+                gen, pcm, _ = pcms.get(timeout=0.3)
+            except queue.Empty:
+                with lock:
+                    out = st["out"] if time.time() > st["until"] + 0.3 else None
+                    if out:
+                        st["out"] = None
+                if out:
+                    end(out)
                 continue
+            cur = [gen, pcm, 0]
+        with lock:
+            if cur[0] != st["gen"]:
+                cur = None
+                continue
+            if st["paused"]:
+                continue
+            if st["rewind"]:
+                cur[2], st["rewind"] = max(0, cur[2] - REWIND), False
             if not st["out"]:
                 sink = [f"--device={st['sink']}"] if st["sink"] else []
                 st["out"] = subprocess.Popen(
@@ -99,9 +134,11 @@ def play():
                     stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
             out = st["out"]
-            st["until"] = max(st["until"], time.time()) + secs
+            chunk = cur[1][cur[2] : cur[2] + CHUNK]
+            cur[2] += len(chunk)
+            st["until"] = max(st["until"], time.time()) + len(chunk) / 4 / OUT_RATE
         try:
-            out.stdin.write(pcm)
+            out.stdin.write(chunk)
             out.stdin.flush()
         except (OSError, ValueError):
             with lock:
@@ -214,11 +251,20 @@ def call(c, f):
         kill(p)
 
     def stt():
-        while (pcm := jobs.get()) is not None:
+        while (job := jobs.get()) is not None:
+            pcm, barge = job
             try:
                 text = transcribe(pcm)
+                if barge and backchannel(text):
+                    resume_audio()
+                    emit("drop")
+                    continue
+                if barge:
+                    stop_audio()
                 emit(f"text {text}" if text else "drop")
             except Exception as e:
+                if barge:
+                    resume_audio()
                 emit(f"error speech-to-text failed: {e}")
 
     threading.Thread(target=commands, daemon=True).start()
@@ -226,15 +272,17 @@ def call(c, f):
     emit("ready" if aec else "ready noaec")
     pre = collections.deque(maxlen=16)
     hits = collections.deque(maxlen=10)
-    speech = None
+    speech = barge = None
     while len(buf := p.stdout.read(FRAME * 2)) == FRAME * 2:
         # pi's echo lingers a moment after its audio ends
-        talking = time.time() < st["until"] + 0.5
+        talking = st["paused"] or time.time() < st["until"] + 0.5
         # without echo cancel, pi's own voice would reach the mic, so stay deaf while it talks
         if muted[0] or (not aec and talking):
             if speech is not None:
                 emit("drop")
-            speech = None
+            if barge:
+                resume_audio()
+            speech = barge = None
             pre.clear()
             hits.clear()
             vad.reset()
@@ -247,23 +295,33 @@ def call(c, f):
             if sum(hits) < (8 if talking else 4):
                 continue
             speech, voiced, silent = list(pre), sum(hits), 0
+            # talking over the reply pauses it; the words decide whether it stops
             if talking:
-                stop_audio()
+                pause_audio()
+                barge = time.time()
             emit("speech")
             continue
         speech.append(buf)
+        if barge and time.time() - barge > BARGE_S:
+            stop_audio()
+            barge = None
         voiced += prob >= 0.5
         silent = 0 if prob >= 0.35 else silent + 1
-        if silent * FRAME_S < SILENCE_S and len(speech) * FRAME_S < 120:
+        # a paused reply waits on this utterance, so a shorter pause ends it
+        if silent * FRAME_S < (0.5 if barge else SILENCE_S) and len(speech) * FRAME_S < 120:
             continue
         if voiced >= 5:
             emit("heard")
-            jobs.put(b"".join(speech[: len(speech) - max(silent - 8, 0)]))
+            jobs.put((b"".join(speech[: len(speech) - max(silent - 8, 0)]), barge is not None))
         else:
+            if barge:
+                resume_audio()
             emit("drop")
-        speech = None
+        speech = barge = None
         pre.clear()
         hits.clear()
+    if barge:
+        resume_audio()
     jobs.put(None)
     kill(p)
     p.wait()
