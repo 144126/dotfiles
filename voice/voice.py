@@ -6,10 +6,14 @@ SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
 LEOKANI = os.path.expanduser("~/models/leokani-tts-4.5M")
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
-TURN_MODEL = os.path.expanduser("~/models/smart-turn/smart-turn-v3.2-cpu.onnx")
-# quiet that ends a turn even when Smart Turn hears an unfinished one
+TURN_MODEL = os.path.expanduser("~/models/kuroko/onnx/kuroko-stream.onnx")
+# quiet that ends a turn even when Kuroko hears the speaker holding the floor
 SILENCE_S = float(os.environ.get("PI_VOICE_SILENCE_S") or 2.0)
-TURN_CHECKS = (8, 24)  # Smart Turn is asked after 256 ms and 768 ms of quiet
+# after this much quiet, a turn ends once Kuroko's hold drops below TURN_HOLD.
+# On LiveKit's eot-bench (400 English turns) this cut off 7% of mid-turn pauses at 0.74 s mean wait,
+# where Smart Turn v3.2 at 256/768 ms cut off 18% at 0.65 s
+TURN_AFTER_S = float(os.environ.get("PI_VOICE_TURN_AFTER_S") or 0.4)
+TURN_HOLD = float(os.environ.get("PI_VOICE_TURN_HOLD") or 0.65)
 OUT_RATE = 24000
 FRAME = 512  # Silero's window: 32 ms at 16 kHz
 FRAME_S = FRAME / 16000
@@ -225,36 +229,52 @@ class Vad:
         return out[0][0]
 
 
-def slaney_mel(sr=16000, n_fft=400, n_mels=80):
-    hz2mel = lambda f: np.where(f < 1000, 3 * f / 200, 15 + 27 * np.log(np.maximum(f, 1e-10) / 1000) / np.log(6.4))
-    mel2hz = lambda m: np.where(m < 15, 200 * m / 3, 1000 * np.exp(np.log(6.4) / 27 * (m - 15)))
-    pts = mel2hz(np.linspace(hz2mel(0.0), hz2mel(sr / 2), n_mels + 2))
-    slopes = pts[None, :] - np.linspace(0, sr / 2, n_fft // 2 + 1)[:, None]
-    d = np.diff(pts)
-    fb = np.maximum(0, np.minimum(-slopes[:, :-2] / d[:-1], slopes[:, 2:] / d[1:]))
-    return (fb * (2 / (pts[2:] - pts[:-2]))).T
-
-
 class Turn:
-    """Smart Turn v3.2 (pipecat-ai, BSD-2): the chance the speech so far is a finished turn, from tone and pace.
-    Input is Whisper's log-mel of the last 8 s (matches transformers' WhisperFeatureExtractor to 1e-7)."""
+    """Kuroko (PatientDesk AI, Apache-2.0): does the speaker still hold the floor, pauses included?
+    One 40 ms step of the mic and the agent's channel; the agent's channel is a quiet room (floor 1e-2),
+    as scored on eot-bench. Remembers the last 10 s, which scored the same as 40 s."""
+
+    CONTEXT = 250
 
     def __init__(self):
         import onnxruntime as ort
 
         so = ort.SessionOptions()
-        so.intra_op_num_threads, so.inter_op_num_threads = 2, 1
+        so.intra_op_num_threads = so.inter_op_num_threads = 1
         self.s = ort.InferenceSession(TURN_MODEL, so, providers=["CPUExecutionProvider"])
-        self.mel, self.win = slaney_mel(), np.hanning(401)[:-1]
+        self.turns = 1.0 / 10_000 ** (np.arange(32) / 32)
+        self.floor = np.full((2, 2, 80), 1e-10, np.float32)
+        self.floor[1] = 1e-2
+        self.reset()
+
+    def reset(self):
+        self.k, self.hold, self.buf = 0, 1.0, np.zeros(0, np.float32)
+        self.last = np.zeros((2, 320), np.float32)
+        self.heard = np.zeros((2, 4, 80), np.float32)
+        self.mask = np.full(self.CONTEXT, -1e30, np.float32)
+        self.keys = [np.zeros((6, 64, self.CONTEXT), np.float32) for _ in range(8)]
+        self.values = [np.zeros((6, self.CONTEXT, 64), np.float32) for _ in range(8)]
 
     def __call__(self, pcm):
-        x = np.frombuffer(pcm, "<i2").astype(np.float32)[-128000:] / 32768
-        x = np.pad(x, (128000 - len(x), 0))
-        x = (x - x.mean()) / np.sqrt(x.var() + 1e-7)
-        frames = np.lib.stride_tricks.sliding_window_view(np.pad(x, 200, mode="reflect"), 400)[::160]
-        log = np.log10(np.maximum(self.mel @ (np.abs(np.fft.rfft(frames * self.win, axis=1)) ** 2).T[:, :-1], 1e-10))
-        feats = ((np.maximum(log, log.max() - 8) + 4) / 4).astype(np.float32)
-        return float(self.s.run(None, {"input_features": feats[None]})[0].ravel()[0])
+        """Feed 16 kHz s16 mic audio; returns the latest chance the speaker holds the floor."""
+        self.buf = np.concatenate([self.buf, np.frombuffer(pcm, "<i2").astype(np.float32) / 32768])
+        while len(self.buf) >= 640:
+            a = np.stack([self.buf[:640], np.zeros(640, np.float32)])
+            self.buf = self.buf[640:]
+            f = {"audio": np.concatenate([self.last, a], 1), "floor": self.floor, "heard": self.heard, "mask": self.mask,
+                 "cos": np.cos(self.k * self.turns).astype(np.float32), "sin": np.sin(self.k * self.turns).astype(np.float32)}
+            f |= {f"key{i}": self.keys[i] for i in range(8)}
+            f |= {f"value{i}": self.values[i] for i in range(8)}
+            ans, self.heard, keys, values = self.s.run(None, f)
+            place = self.k % self.CONTEXT
+            for i in range(8):
+                self.keys[i][:, :, place] = keys[i]
+                self.values[i][:, place] = values[i]
+            self.mask[place] = 0.0
+            self.last = a[:, -320:]
+            self.k += 1
+            self.hold = float(np.ravel(ans)[2])
+        return self.hold
 
 
 def call(c, f):
@@ -269,7 +289,7 @@ def call(c, f):
     st["sink"] = "pi_aec_sink" if aec else None
     p = mic("pi_aec_src" if aec else None)
     vad = Vad()
-    turn = Turn() if os.path.exists(TURN_MODEL) else (lambda pcm: 0.0)
+    turn = Turn() if os.path.exists(TURN_MODEL) else None
     muted = [False]
     jobs = queue.Queue()
     send_lock = threading.Lock()
@@ -331,6 +351,9 @@ def call(c, f):
             if sum(hits) < (8 if talking else 4):
                 continue
             speech, voiced, silent = list(pre), sum(hits), 0
+            if turn:
+                turn.reset()
+                turn(b"".join(speech))
             # talking over the reply pauses it; the words decide whether it stops
             if talking:
                 pause_audio()
@@ -338,17 +361,18 @@ def call(c, f):
             emit("speech")
             continue
         speech.append(buf)
+        hold = turn(buf) if turn else 1.0
         if barge and time.time() - barge > BARGE_S:
             stop_audio()
             barge = None
         voiced += prob >= 0.5
         silent = 0 if prob >= 0.35 else silent + 1
-        # a paused reply waits on this utterance, so a short pause ends it; otherwise Smart Turn decides,
+        # a paused reply waits on this utterance, so a short pause ends it; otherwise Kuroko decides,
         # and a long enough quiet ends the turn regardless
         if barge:
             done = silent * FRAME_S >= 0.5
         else:
-            done = silent * FRAME_S >= SILENCE_S or (silent in TURN_CHECKS and voiced >= 5 and turn(b"".join(speech)) >= 0.5)
+            done = silent * FRAME_S >= SILENCE_S or (silent * FRAME_S >= TURN_AFTER_S and voiced >= 5 and hold < TURN_HOLD)
         if not done and len(speech) * FRAME_S < 120:
             continue
         if voiced >= 5:
