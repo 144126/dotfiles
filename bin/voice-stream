@@ -1,10 +1,10 @@
 #!/usr/bin/env -S uv run --script --quiet
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["onnxruntime==1.23.2", "numpy", "kaldi-native-fbank==1.21.3", "sounddevice"]
+# dependencies = ["onnx-asr[cpu]==0.12.0", "numpy", "sounddevice"]
 # ///
 # Mod+q: press to talk, press again to stop. Each phrase is typed into the focused window once, when you pause.
-# No live words and no corrections afterwards. Same local model as Mod+Ctrl+E (voice/conformer.py).
+# No live words and no corrections afterwards. Same local model as Mod+Ctrl+E (voice/stt.py).
 # `voice-stream status` feeds waybar.
 import fcntl, json, os, queue, signal, subprocess, sys, threading
 from pathlib import Path
@@ -43,7 +43,7 @@ try:
     state.write_text('● voice loading')
     import numpy as np, sounddevice as sd
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'voice'))
-    from conformer import load
+    from stt import load
     transcribe = load()
     q = queue.Queue()
     floor, pre, seg, loud_run, quiet = 0.005, [], None, 0, 0

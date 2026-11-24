@@ -194,13 +194,13 @@ def kill(p):
 stt = None
 
 
-# Conformer is shared with Mod+Ctrl+E (voice-text).
+# Fluid Speech Pro (stt.py) is shared with Mod+Ctrl+E (voice-text) and Mod+q (voice-stream).
 def transcribe(pcm):
     global stt
     if stt is None:
         import importlib.util
 
-        spec = importlib.util.spec_from_file_location("conformer", os.path.join(os.path.dirname(os.path.abspath(__file__)), "conformer.py"))
+        spec = importlib.util.spec_from_file_location("stt", os.path.join(os.path.dirname(os.path.abspath(__file__)), "stt.py"))
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
         stt = m.load()
@@ -276,7 +276,7 @@ class Turn:
         return self.hold
 
 
-def call(c, f, model="conformer"):
+def call(c, f, model="fluid"):
     decode = transcribe
     if model == "canary":
         from canary import transcribe as decode

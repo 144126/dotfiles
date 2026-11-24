@@ -140,7 +140,7 @@ rm -rf "$stk"
 if [ "$(stat -c%s "$job")" -le 44 ]; then notify "no speech detected"; exit; fi
 # one transcribe+paste at a time, so jobs paste in stop order as before
 exec 7>"$D/transcribe.lock"; flock 7
-# the shared speech-to-text (local conformer, voice/conformer.py); pi-voice sends the same text to pi
+# the shared speech-to-text (local Fluid Speech Pro, voice/stt.py); pi-voice sends the same text to pi
 text=$(~/.local/bin/voice-text "$job") || exit
 
 # trailing space so back-to-back dictations don't glue words together

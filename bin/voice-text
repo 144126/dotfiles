@@ -1,6 +1,6 @@
 #!/bin/bash
 # voice-text <wav>: the one speech-to-text of this machine. Text to stdout.
-# Local NeMo Conformer-small, 4-bit (voice/conformer.py): the model rope's ai call and pilotspan dictation use.
+# Local Fluid Speech Pro int8 (voice/stt.py), also behind voice-stream (Mod+q) and claude-voice.
 # Mod+Ctrl+E (sway-voice-global.sh) pastes this and pi-voice sends it to pi, so they can never diverge.
 LOG="${XDG_RUNTIME_DIR:-/tmp}/voice/log"
 mkdir -p "$(dirname "$LOG")"
@@ -10,10 +10,11 @@ fail() { log "$*"; notify-send -t 3500 voice "$*"; exit 1; }
 wav=$1
 [ -s "$wav" ] && [ "$(stat -c%s "$wav")" -gt 44 ] || fail "no speech detected"
 
-if ! text=$("$(dirname "$(readlink -f "$0")")/../voice/conformer.py" "$wav" 2>>"$LOG"); then
-  keep=~/voice-failed/$(date +%F-%H%M%S).wav
+if ! text=$("$(dirname "$(readlink -f "$0")")/../voice/stt.py" "$wav" 2>>"$LOG"); then
+  # copy, never move: the caller's file may be a recording it still needs
   mkdir -p ~/voice-failed
-  mv "$wav" "$keep"
+  keep=$(mktemp ~/voice-failed/"$(date +%F-%H%M%S)"-XXXX.wav)
+  cp "$wav" "$keep"
   fail "transcription failed — audio kept at $keep"
 fi
 text=$(printf %s "$text" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
