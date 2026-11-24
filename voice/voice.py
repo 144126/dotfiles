@@ -194,7 +194,7 @@ def kill(p):
 stt = None
 
 
-# the machine's one speech-to-text: conformer.py, same as Mod+Ctrl+E (voice-text)
+# Conformer is shared with Mod+Ctrl+E (voice-text).
 def transcribe(pcm):
     global stt
     if stt is None:
@@ -276,7 +276,11 @@ class Turn:
         return self.hold
 
 
-def call(c, f):
+def call(c, f, model="conformer"):
+    decode = transcribe
+    if model == "canary":
+        from canary import transcribe as decode
+
     with lock:
         old, st["call"] = st["call"], c
     if old:
@@ -309,7 +313,7 @@ def call(c, f):
         while (job := jobs.get()) is not None:
             pcm, barge = job
             try:
-                text = transcribe(pcm)
+                text = decode(pcm)
                 if barge and backchannel(text):
                     resume_audio()
                     emit("drop")
@@ -463,10 +467,10 @@ def serve():
         f = c.makefile("r", encoding="utf-8")
         try:
             cmd = f.readline().strip()
-            session = {"listen": call, "rec": dictate}.get(cmd)
+            session = {"listen": call, "listen canary": call, "rec": dictate}.get(cmd)
             if session or cmd.startswith("/"):
                 c.settimeout(None)
-                args = (c, f) if session else (c, f, cmd)
+                args = (c, f, "canary") if cmd == "listen canary" else (c, f) if session else (c, f, cmd)
                 threading.Thread(target=session or to_file, args=args, daemon=True).start()
                 continue
             text = f.read().strip()

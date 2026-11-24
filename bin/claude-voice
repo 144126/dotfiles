@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // claude-voice toggle|mute: a Claude session in a tmux window ("voice"), talked to by voice.
-// Mic -> Whistle speech-to-text -> typed into the pane; Claude's replies -> spoken by Phonon.
+// Mic -> Canary speech-to-text -> typed into the pane.
 // Both go through the voice daemon (/tmp/voice.sock, dotfiles/voice/voice.py).
 // Super+Ctrl+z toggles, Super+z (mod-z) mutes. Ending leaves the tmux window open.
 import net from "node:net";
@@ -115,7 +115,7 @@ async function run() {
   }, 2000);
 
   let muted = false;
-  const c = net.connect(SOCK, () => c.write("listen\n"));
+  const c = net.connect(SOCK, () => c.write("listen canary\n"));
   process.on("SIGUSR1", () => {
     muted = !muted;
     c.write(muted ? "mute\n" : "unmute\n");
