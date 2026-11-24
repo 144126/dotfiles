@@ -73,15 +73,14 @@ def playing():
 
 
 def leokani_chunks(text):
+    """The on-device voice: Kitten TTS 2 Pico, Eleanor (kitten.py). Name kept for the callers."""
     global leokani
-    if LEOKANI not in sys.path:
-        sys.path.insert(0, LEOKANI)
-    import leokani_onnx
-
     if leokani is None:
-        leokani = leokani_onnx.Leokani(LEOKANI, model="leokani-tts-int8.onnx", threads=1)
-    for chunk in leokani_onnx.chunks(leokani_onnx.clean(text)):
-        yield leokani.synthesize(chunk)
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import kitten
+
+        leokani = kitten.Kitten(threads=1)
+    yield from leokani.chunks(text)
 
 
 def leokani_pcm(text):
