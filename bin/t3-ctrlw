@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+// Ctrl+W deletes the open T3 Code thread. T3 keybindings have no delete command,
+// so this binds ctrl+w in sway only while T3 is focused.
+// No args: watch focus and toggle the binding. "del": delete the open thread.
+import { execFileSync, spawn } from "node:child_process";
+import { createInterface } from "node:readline";
+import { homedir } from "node:os";
+import { DatabaseSync } from "node:sqlite";
+
+const app = "com.t3tools.T3Code";
+const sway = (...a) => execFileSync("swaymsg", a, { encoding: "utf8" });
+const notify = (m) => spawn("notify-send", ["T3", m]).unref();
+
+const focused = (n) => n.focused ? n : [...n.nodes, ...n.floating_nodes].map(focused).find(Boolean);
+
+if (process.argv[2] === "del") {
+  const w = focused(JSON.parse(sway("-t", "get_tree")));
+  if (w?.app_id !== app) process.exit();
+  // Window title is "<project> / <thread title>".
+  const i = w.name.indexOf(" / ");
+  const db = new DatabaseSync(`${homedir()}/.t3/userdata/statev2.sqlite`, { readOnly: true });
+  // Same titles repeat; the open thread is the one visited last.
+  const t = db.prepare(
+    `select t.thread_id from orchestration_v2_projection_threads t join projection_projects p using(project_id)
+     where p.title = ? and t.title = ? and t.deleted_at is null
+     order by json_extract(t.payload_json, '$.lastVisitedAt') desc limit 1`,
+  ).get(w.name.slice(0, i), w.name.slice(i + 3))?.thread_id;
+  if (!t) { notify(`No thread named "${w.name}"`); process.exit(1); }
+  try { execFileSync("node", [`${homedir()}/.agents/skills/d/delete-thread.mjs`, t], { stdio: "pipe" }); }
+  catch (e) { notify(`Delete failed: ${e.stderr}`); process.exit(1); }
+  process.exit();
+}
+
+let bound = false;
+const set = (on) => {
+  if (on === bound) return;
+  bound = on;
+  on ? sway(`bindsym --no-warn ctrl+w exec ${process.argv[1]} del`) : sway("unbindsym ctrl+w");
+};
+set(focused(JSON.parse(sway("-t", "get_tree")))?.app_id === app);
+const sub = spawn("swaymsg", ["-t", "subscribe", "-m", '["window"]']);
+createInterface({ input: sub.stdout }).on("line", (l) => {
+  const e = JSON.parse(l);
+  if (e.change === "focus") set(e.container.app_id === app);
+  else if (e.change === "close" && e.container.app_id === app) set(false);
+});
+sub.on("exit", () => { if (bound) sway("unbindsym ctrl+w"); process.exit(1); });
