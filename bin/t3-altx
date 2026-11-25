@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Alt+Z deletes the open T3 Code thread. T3 keybindings have no delete command,
-// so this binds alt+z in sway only while T3 is focused.
+// Alt+X deletes the open T3 Code thread. T3 keybindings have no delete command,
+// so this binds alt+x in sway only while T3 is focused.
 // No args: watch focus and toggle the binding. "del": delete the open thread.
 import { execFileSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -35,7 +35,7 @@ let bound = false;
 const set = (on) => {
   if (on === bound) return;
   bound = on;
-  on ? sway(`bindsym --no-warn alt+z exec ${process.argv[1]} del`) : sway("unbindsym alt+z");
+  on ? sway(`bindsym --no-warn alt+x exec ${process.argv[1]} del`) : sway("unbindsym alt+x");
 };
 set(focused(JSON.parse(sway("-t", "get_tree")))?.app_id === app);
 const sub = spawn("swaymsg", ["-t", "subscribe", "-m", '["window"]']);
@@ -44,4 +44,4 @@ createInterface({ input: sub.stdout }).on("line", (l) => {
   if (e.change === "focus") set(e.container.app_id === app);
   else if (e.change === "close" && e.container.app_id === app) set(false);
 });
-sub.on("exit", () => { if (bound) sway("unbindsym alt+z"); process.exit(1); });
+sub.on("exit", () => { if (bound) sway("unbindsym alt+x"); process.exit(1); });
