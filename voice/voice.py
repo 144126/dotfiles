@@ -4,7 +4,6 @@ import numpy as np
 
 SOCK = "/tmp/voice.sock"
 VAD_MODEL = os.path.expanduser("~/.local/share/voice/silero_vad.onnx")
-LEOKANI = os.path.expanduser("~/models/leokani-tts-4.5M")
 REC_CMD = os.environ.get("PI_VOICE_REC_CMD", "")
 TURN_MODEL = os.path.expanduser("~/models/kuroko/onnx/kuroko-stream.onnx")
 # quiet that ends a turn even when Kuroko hears the speaker holding the floor
@@ -27,7 +26,8 @@ BARGE_S = 1.5  # talking this long over a paused reply is a real interruption, w
 # a short utterance made only of these words is a backchannel ("mhm", "got it"): the reply resumes
 BACKCHANNEL = set("mhm mm mmhmm hmm uh huh um ah oh yeah yes yep yup ok okay right sure alright all cool nice got it i see".split())
 texts, pcms = queue.Queue(), queue.Queue()
-leokani = None
+phonon = None
+VOICE = os.environ.get("PI_VOICE_NAME") or "Juniper"  # Phonon 31M female US voice, top DistillMOS pick
 
 
 def end(p, now=False):
@@ -72,19 +72,21 @@ def playing():
     return st["paused"] or st["busy"] or not texts.empty() or not pcms.empty() or time.time() < st["until"]
 
 
-def leokani_chunks(text):
-    """The on-device voice: Kitten TTS 2 Pico, Eleanor (kitten.py). Name kept for the callers."""
-    global leokani
-    if leokani is None:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        import kitten
+def tts_chunks(text):
+    """The on-device voice: Phonon 31M (gradium, via ptts), Juniper. Streams float32 24 kHz chunks."""
+    global phonon
+    if phonon is None:
+        import ptts
 
-        leokani = kitten.Kitten(threads=1)
-    yield from leokani.chunks(text)
+        ptts.set_num_threads(4)  # 4 threads: ~1.9x realtime, first audio ~0.3 s on this i7-8565U
+        phonon = ptts.TTS("hf://gradium/phonon-31m-en", lang="en", quant="q8")
+    with phonon.stream(text, voice=VOICE) as audio:
+        for pcm in audio:
+            yield np.asarray(pcm, dtype=np.float32)
 
 
-def leokani_pcm(text):
-    parts = list(leokani_chunks(text)) if text.strip() else []
+def tts_pcm(text):
+    parts = list(tts_chunks(text)) if text.strip() else []
     return np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
 
 
@@ -96,7 +98,7 @@ def synth():
         st["busy"] = True
         try:
             with tts_lock:
-                for pcm in leokani_chunks(text):
+                for pcm in tts_chunks(text):
                     if gen != st["gen"]:
                         break
                     if len(pcm):
@@ -439,7 +441,7 @@ def to_file(c, f, path):
     try:
         text = f.read()
         with tts_lock:
-            pcm = leokani_pcm(text)
+            pcm = tts_pcm(text)
         soundfile.write(path, pcm, OUT_RATE)
         c.sendall(b"ok")
     except Exception:
@@ -510,4 +512,4 @@ except OSError:
     subprocess.Popen([sys.executable, __file__, "--serve"], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     import soundfile
 
-    soundfile.write(wav, leokani_pcm(text), OUT_RATE)
+    soundfile.write(wav, tts_pcm(text), OUT_RATE)
