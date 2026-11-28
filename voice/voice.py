@@ -80,6 +80,7 @@ def tts_chunks(text):
 
         ptts.set_num_threads(4)  # 4 threads: ~1.9x realtime, first audio ~0.3 s on this i7-8565U
         phonon = ptts.TTS("hf://gradium/phonon-31m-en", lang="en", quant="q8")
+    text = re.sub(r"\bOpenAI\b", "Open A I", text, flags=re.I)  # Phonon says bare "OpenAI" like "OpenA"
     with phonon.stream(text, voice=VOICE) as audio:
         for pcm in audio:
             yield np.asarray(pcm, dtype=np.float32)
